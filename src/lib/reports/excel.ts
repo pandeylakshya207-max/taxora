@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import { CATEGORY_INFO, CATEGORY_ORDER, FLAG_LABEL, REVIEW_LABEL, isCategory } from "../recon/labels";
 import { REPORT_DISCLAIMER, sideTotal, type ReportData, type ReportLine } from "./types";
+import { ITC_LABELS } from "./itc";
 
 /**
  * Builds the Excel reconciliation report. Pure: data in, bytes out.
@@ -171,6 +172,24 @@ export async function buildReportWorkbook(data: ReportData): Promise<Uint8Array>
   s.addRow(["Still pending review", data.counts.pendingReview]);
   s.addRow(["Uploaded rows excluded (errors)", data.importIssueTotal]);
   s.addRow([]);
+
+  if (data.itc) {
+    const itcHead = s.addRow(["Input tax credit comparison", "Tax (₹)", "Comparison figures for review — not a computation of eligible ITC"]);
+    styleHeader(itcHead);
+    itcHead.height = 20;
+    const money = (label: string, paise: number, note: string) => {
+      const r = s.addRow([label, paise / 100, note]);
+      r.getCell(2).numFmt = MONEY;
+      return r;
+    };
+    money("Tax as per purchase register", data.itc.booksTax, "All imported purchase-register rows").font = { bold: true };
+    money("Tax as per GSTR-2B", data.itc.gstr2bTax, "All imported GSTR-2B rows").font = { bold: true };
+    for (const item of ITC_LABELS) {
+      const b = data.itc[item.key];
+      money(`${item.label} (${b.count})`, b.tax, item.help);
+    }
+    s.addRow([]);
+  }
   const disc = s.addRow([REPORT_DISCLAIMER]);
   s.mergeCells(disc.number, 1, disc.number, 3);
   disc.alignment = { wrapText: true, vertical: "top" };

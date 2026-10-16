@@ -2,6 +2,7 @@ import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf
 import { formatPaise } from "../recon/money";
 import { CATEGORY_INFO, CATEGORY_ORDER, FLAG_LABEL, REVIEW_LABEL, isCategory } from "../recon/labels";
 import { REPORT_DISCLAIMER, sideTotal, type ReportData } from "./types";
+import { ITC_LABELS } from "./itc";
 
 /**
  * Builds the PDF reconciliation report. Pure: data in, bytes out.
@@ -149,6 +150,30 @@ export async function buildReportPdf(data: ReportData): Promise<Uint8Array> {
   if (data.importIssueTotal > 0) {
     y -= 13;
     text(`${data.importIssueTotal} uploaded row(s) had errors and were excluded from matching (listed in the Excel report).`, M, y, 9, font, ROSE);
+  }
+
+  // ── ITC comparison (full reports only) ──
+  if (data.itc) {
+    const itc = data.itc;
+    y -= 26;
+    text("Input tax credit comparison", M, y, 12, bold);
+    text("Comparison figures for review — not a computation of eligible ITC.", M + 175, y + 1, 8, font, MUTED);
+    y -= 16;
+    text("Tax as per purchase register", M, y, 8.5, font, MUTED);
+    text(`Rs. ${formatPaise(itc.booksTax)}`, M + 150, y, 9, bold);
+    text("Tax as per GSTR-2B", 430, y, 8.5, font, MUTED);
+    text(`Rs. ${formatPaise(itc.gstr2bTax)}`, 540, y, 9, bold);
+    y -= 6;
+    const colW = (PAGE_W - 2 * M) / 2;
+    ITC_LABELS.forEach((item, i) => {
+      const b = itc[item.key];
+      const x = M + (i % 2) * colW;
+      if (i % 2 === 0) y -= 14;
+      const color = item.tone === "bad" && b.tax !== 0 ? ROSE : INK;
+      text(fit(`${item.label} (${b.count})`, font, 8.5, colW - 130), x, y, 8.5, font, INK);
+      const amount = `Rs. ${formatPaise(b.tax)}`;
+      text(amount, x + colW - 20 - bold.widthOfTextAtSize(amount, 9), y, 9, bold, color);
+    });
   }
 
   // ── Detail table: everything that is not an exact match ──

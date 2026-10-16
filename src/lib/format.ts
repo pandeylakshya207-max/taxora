@@ -26,6 +26,7 @@ const ACTION_LABELS: Record<string, string> = {
   "reconciliation.run": "Ran a reconciliation",
   "result.reviewed": "Reviewed a result",
   "export.generated": "Downloaded a report",
+  "reconciliation.finalized": "Finalised a reconciliation",
 };
 
 export const describeAction = (action: string) => ACTION_LABELS[action] ?? action;

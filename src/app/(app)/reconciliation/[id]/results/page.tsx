@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft, FileDown, Search } from "lucide-react";
+import { ChevronLeft, FileDown, Search, ShieldCheck } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -9,7 +9,7 @@ import { formatPaise } from "@/lib/recon/money";
 import { formatPeriod } from "@/lib/recon/periods";
 import { CATEGORY_INFO, CATEGORY_ORDER, FLAG_LABEL, REVIEW_LABEL, isCategory } from "@/lib/recon/labels";
 import type { AmountDiffs, ReconSummary } from "@/lib/recon/engine";
-import { PageHeader, buttonSecondary } from "@/components/app/page-header";
+import { PageHeader, buttonPrimary, buttonSecondary } from "@/components/app/page-header";
 
 export const metadata: Metadata = { title: "Reconciliation results" };
 
@@ -131,6 +131,10 @@ export default async function ResultsPage({ params, searchParams }: Props) {
                 </a>
               );
             })}
+            <Link href={`/reconciliation/${id}/finalise`} className={buttonPrimary}>
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              {recon.finalizedAt ? "ITC review" : "ITC review & finalise"}
+            </Link>
           </div>
         }
       />

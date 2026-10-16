@@ -5,6 +5,7 @@
  */
 
 import type { Paise } from "../recon/money";
+import type { ItcSummary } from "./itc";
 
 export type ReportSide = {
   sourceRow: number;
@@ -53,6 +54,8 @@ export type ReportData = {
   lines: ReportLine[];
   importIssues: ImportIssue[];
   importIssueTotal: number;
+  /** Only for unfiltered reports: a filtered subset would give misleading totals. */
+  itc: ItcSummary | null;
 };
 
 export const sideTotal = (s: ReportSide | null): Paise | null =>

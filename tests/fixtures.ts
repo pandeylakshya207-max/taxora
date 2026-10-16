@@ -1,4 +1,5 @@
 import type { ReportData, ReportLine, ReportSide } from "../src/lib/reports/types";
+import { computeItcSummary } from "../src/lib/reports/itc";
 
 const side = (p: Partial<ReportSide> & { invoiceNo: string }): ReportSide => ({
   sourceRow: 2, gstin: "08AAACS1111A1ZA", supplierName: "Shree Steel Pvt Ltd", invoiceDate: "2026-04-05",
@@ -38,5 +39,6 @@ export function sampleReport(extraLines = 0): ReportData {
     lines,
     importIssues: [{ source: "Purchase register", row: 9, field: "Supplier GSTIN", message: "GSTIN check digit does not match — check for a typo.", value: "08AAACS1111A1ZX" }],
     importIssueTotal: 2,
+    itc: computeItcSummary(lines),
   };
 }

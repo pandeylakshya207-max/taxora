@@ -6,7 +6,8 @@ import type { AmountDiffs, ReconSummary, ScoreBreakdown } from "@/lib/recon/engi
 import { CATEGORY_INFO, isCategory } from "@/lib/recon/labels";
 import { FIELD_LABELS, type Field, type RowIssue } from "@/lib/recon/import";
 import { formatPeriod } from "@/lib/recon/periods";
-import type { ImportIssue, ReportData, ReportSide } from "./types";
+import type { ImportIssue, ReportData, ReportLine, ReportSide } from "./types";
+import { computeItcSummary } from "./itc";
 
 export type ReportFilter = { category?: string; pendingOnly?: boolean };
 
@@ -85,6 +86,25 @@ export async function loadReportData(session: SessionContext, reconciliationId: 
 
   const filterParts = [category && CATEGORY_INFO[category].label, filter.pendingOnly && "pending review only"].filter(Boolean);
 
+  const lines: ReportLine[] = results.map((r) => {
+    const d = r.diffs as unknown as AmountDiffs | null;
+    return {
+      category: r.category,
+      flags: r.flags,
+      reason: r.reasons[0] ?? "",
+      needsReview: r.needsReview,
+      reviewStatus: r.reviewStatus,
+      reviewNote: r.reviewNote,
+      score: (r.score as unknown as ScoreBreakdown | null)?.total ?? null,
+      pr: r.prRowId ? sides.get(r.prRowId) ?? null : null,
+      b2b: r.b2bRowId ? sides.get(r.b2bRowId) ?? null : null,
+      diffTotal: d?.total ?? null,
+      diffTaxable: d?.taxable ?? null,
+      diffTax: d ? d.igst + d.cgst + d.sgst + d.cess : null,
+    };
+  });
+  const filtered = filterParts.length > 0;
+
   return {
     workspaceName: session.firm.name,
     client: recon.client,
@@ -103,24 +123,9 @@ export async function loadReportData(session: SessionContext, reconciliationId: 
       needsReview: summary.needsReview,
       pendingReview,
     },
-    lines: results.map((r) => {
-      const d = r.diffs as unknown as AmountDiffs | null;
-      return {
-        category: r.category,
-        flags: r.flags,
-        reason: r.reasons[0] ?? "",
-        needsReview: r.needsReview,
-        reviewStatus: r.reviewStatus,
-        reviewNote: r.reviewNote,
-        score: (r.score as unknown as ScoreBreakdown | null)?.total ?? null,
-        pr: r.prRowId ? sides.get(r.prRowId) ?? null : null,
-        b2b: r.b2bRowId ? sides.get(r.b2bRowId) ?? null : null,
-        diffTotal: d?.total ?? null,
-        diffTaxable: d?.taxable ?? null,
-        diffTax: d ? d.igst + d.cgst + d.sgst + d.cess : null,
-      };
-    }),
+    lines,
     importIssues,
     importIssueTotal,
+    itc: filtered ? null : computeItcSummary(lines),
   };
 }
