@@ -1,0 +1,164 @@
+// Taxora database schema — Phase 1: firms, users, sessions, clients, audit log.
+//
+// Rules this schema enforces:
+// - Every business record belongs to exactly one Firm (tenant isolation).
+// - Uniqueness rules live in the database, not just in the UI.
+// - Audit rows are append-only by convention (no update/delete code paths).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+/// What kind of organisation the workspace belongs to.
+enum OrgKind {
+  CA_PRACTICE
+  COMPANY
+  INDIVIDUAL
+}
+
+enum OtpPurpose {
+  EMAIL_VERIFICATION
+}
+
+enum ClientStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+enum BusinessType {
+  PROPRIETORSHIP
+  PARTNERSHIP
+  LLP
+  PRIVATE_LIMITED
+  PUBLIC_LIMITED
+  TRUST
+  OTHER
+}
+
+/// A workspace: a CA practice, a company's finance team, or an individual professional.
+/// (Named Firm in the database; shown as "workspace" in the UI.)
+model Firm {
+  id          String       @id @default(cuid())
+  name        String
+  kind        OrgKind      @default(CA_PRACTICE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  memberships Membership[]
+  clients     Client[]
+  sessions    Session[]
+  auditLogs   AuditLog[]
+}
+
+model User {
+  id           String       @id @default(cuid())
+  email        String       @unique // stored lower-cased
+  name         String
+  passwordHash String
+  /// Null until the user enters a valid OTP sent to this email.
+  emailVerifiedAt DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  memberships  Membership[]
+  sessions     Session[]
+  clientsMade  Client[]     @relation("ClientCreatedBy")
+  auditLogs    AuditLog[]
+  otps         EmailOtp[]
+}
+
+/// One-time codes. Only a hash of the code is stored. A code is single-use,
+/// expires after 10 minutes and locks after 5 wrong attempts.
+model EmailOtp {
+  id         String     @id @default(cuid())
+  userId     String
+  purpose    OtpPurpose
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int        @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  firmId    String
+  userId    String
+  role      Role     @default(MEMBER)
+  createdAt DateTime @default(now())
+  firm      Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([firmId, userId])
+  @@index([userId])
+}
+
+/// Server-side session. Only a SHA-256 hash of the cookie token is stored,
+/// so a database leak does not leak usable session cookies.
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  firmId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firm      Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Client {
+  id           String        @id @default(cuid())
+  firmId       String
+  name         String
+  gstin        String? // normalised upper-case; null for unregistered clients
+  contactName  String?
+  email        String?
+  phone        String?
+  businessType BusinessType?
+  stateCode    String? // derived from GSTIN when present
+  status       ClientStatus  @default(ACTIVE)
+  createdById  String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  archivedAt   DateTime?
+  firm         Firm          @relation(fields: [firmId], references: [id], onDelete: Restrict)
+  createdBy    User          @relation("ClientCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+
+  // One firm cannot hold the same GSTIN twice. Postgres allows many NULLs,
+  // so unregistered clients without a GSTIN are not blocked by this.
+  @@unique([firmId, gstin])
+  @@index([firmId, status, name])
+}
+
+/// Append-only record of who did what, when. Never updated or deleted by app code.
+model AuditLog {
+  id         String   @id @default(cuid())
+  firmId     String
+  actorId    String?
+  action     String // e.g. "client.created", "client.archived"
+  entityType String // e.g. "Client"
+  entityId   String?
+  details    Json?
+  requestId  String?
+  createdAt  DateTime @default(now())
+  firm       Firm     @relation(fields: [firmId], references: [id], onDelete: Restrict)
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([firmId, createdAt])
+  @@index([firmId, entityType, entityId])
+}
