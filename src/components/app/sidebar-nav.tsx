@@ -32,8 +32,8 @@ const NAV: NavItem[] = [
 
 const SECONDARY: NavItem[] = [
   { label: "Audit trail", href: "/audit", icon: History, ready: true },
-  { label: "Settings", href: "/settings", icon: Settings, ready: false },
-  { label: "Support", href: "/support", icon: LifeBuoy, ready: false },
+  { label: "Settings", href: "/settings", icon: Settings, ready: true },
+  { label: "Support", href: "/support", icon: LifeBuoy, ready: true },
 ];
 
 export function SidebarNav({ variant = "sidebar" }: { variant?: "sidebar" | "bar" }) {

@@ -35,6 +35,14 @@ const ACTION_LABELS: Record<string, string> = {
   "compliance.tasks_generated": "Created compliance tasks",
   "compliance.task_created": "Added a compliance task",
   "compliance.task_updated": "Updated a compliance task",
+  "user.profile_updated": "Updated their profile",
+  "user.password_changed": "Changed their password",
+  "user.sessions_revoked": "Signed out other sessions",
+  "workspace.updated": "Updated workspace details",
+  "workspace.matching_updated": "Changed matching rules",
+  "workspace.matching_reset": "Reset matching rules to defaults",
+  "support.ticket_created": "Raised a support request",
+  "support.ticket_status": "Changed a support request's status",
 };
 
 export const describeAction = (action: string) => ACTION_LABELS[action] ?? action;

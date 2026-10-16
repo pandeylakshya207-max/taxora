@@ -20,6 +20,7 @@ const ENTITY_LABEL: Record<string, string> = {
   FollowUp: "Supplier follow-up",
   DueDateRule: "Due-date rule",
   ComplianceTask: "Compliance task",
+  SupportTicket: "Support request",
 };
 
 type Props = { searchParams: Promise<{ entity?: string; actor?: string; from?: string; to?: string; page?: string }> };

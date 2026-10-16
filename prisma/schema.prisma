@@ -73,6 +73,20 @@ enum DueDateSource {
   MANUAL
 }
 
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
 enum ClientStatus {
   ACTIVE
   ARCHIVED
@@ -94,6 +108,8 @@ model Firm {
   id          String       @id @default(cuid())
   name        String
   kind        OrgKind      @default(CA_PRACTICE)
+  /// Workspace matching thresholds; read through resolveReconConfig().
+  reconConfig Json?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   memberships Membership[]
@@ -141,6 +157,8 @@ model Membership {
   firmId    String
   userId    String
   role      Role     @default(MEMBER)
+  /// Notification kinds this member chose not to receive in-app.
+  mutedNotifications String[] @default([])
   createdAt DateTime @default(now())
   firm      Firm     @relation(fields: [firmId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -397,4 +415,36 @@ model Notification {
   createdAt DateTime  @default(now())
 
   @@index([userId, firmId, readAt, createdAt])
+}
+
+/// Support request. `number` is a real database sequence, so every reference
+/// shown to a user (TX-000123) corresponds to a stored ticket.
+model SupportTicket {
+  id          String          @id @default(cuid())
+  number      Int             @unique @default(autoincrement())
+  firmId      String
+  userId      String
+  subject     String
+  category    String
+  priority    TicketPriority  @default(NORMAL)
+  description String
+  status      TicketStatus    @default(OPEN)
+  /// Whether a copy was accepted by the configured support mailbox (null = not configured).
+  emailedAt   DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  messages    SupportMessage[]
+
+  @@index([firmId, createdAt])
+}
+
+model SupportMessage {
+  id        String        @id @default(cuid())
+  ticketId  String
+  authorId  String
+  body      String
+  createdAt DateTime      @default(now())
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
 }

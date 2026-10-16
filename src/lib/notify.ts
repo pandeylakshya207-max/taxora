@@ -6,21 +6,23 @@ import type { Prisma } from "@/generated/prisma/client";
  * part of a transaction, so a notification is only created if the change it
  * announces was actually saved.
  *
- * userIds omitted = every member of the workspace.
+ * userIds omitted = every member of the workspace. Members who switched this
+ * kind off in Settings are skipped.
  */
 export async function notify(
   client: Prisma.TransactionClient,
   input: { firmId: string; kind: string; title: string; body: string; href?: string; userIds?: string[]; excludeUserId?: string },
 ) {
-  let userIds = input.userIds;
-  if (!userIds) {
-    const members = await client.membership.findMany({ where: { firmId: input.firmId }, select: { userId: true } });
-    userIds = members.map((m) => m.userId);
-  }
-  userIds = [...new Set(userIds)].filter((id) => id !== input.excludeUserId);
-  if (!userIds.length) return;
+  const members = await client.membership.findMany({
+    where: { firmId: input.firmId, ...(input.userIds && { userId: { in: input.userIds } }) },
+    select: { userId: true, mutedNotifications: true },
+  });
+  const recipients = members
+    .filter((m) => m.userId !== input.excludeUserId && !m.mutedNotifications.includes(input.kind))
+    .map((m) => m.userId);
+  if (!recipients.length) return;
   await client.notification.createMany({
-    data: userIds.map((userId) => ({
+    data: [...new Set(recipients)].map((userId) => ({
       firmId: input.firmId,
       userId,
       kind: input.kind,

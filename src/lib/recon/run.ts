@@ -4,7 +4,8 @@ import { auditData } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { formatPeriod } from "./periods";
 import type { SessionContext } from "@/lib/auth/session";
-import { DEFAULT_CONFIG, reconcile, summarize, type InvoiceRecord } from "./engine";
+import { reconcile, summarize, type InvoiceRecord } from "./engine";
+import { resolveReconConfig } from "./config";
 import type { ImportStats } from "./store";
 
 const INSERT_BATCH = 1000;
@@ -71,8 +72,12 @@ export async function runReconciliation(session: SessionContext, reconciliationI
   const pr = rows.filter((r) => r.source === "PURCHASE_REGISTER").map(toRecord);
   const b2b = rows.filter((r) => r.source === "GSTR2B").map(toRecord);
 
+  // The workspace's own thresholds, validated and clamped; saved with the run below.
+  const firm = await db.firm.findUnique({ where: { id: session.firm.id }, select: { reconConfig: true } });
+  const config = resolveReconConfig(firm?.reconConfig);
+
   try {
-    const results = reconcile(pr, b2b, DEFAULT_CONFIG);
+    const results = reconcile(pr, b2b, config);
 
     // Integrity check: every row exactly once, before anything is saved.
     const prSeen = results.flatMap((r) => (r.prId ? [r.prId] : []));
@@ -107,7 +112,7 @@ export async function runReconciliation(session: SessionContext, reconciliationI
         }
         await tx.reconciliation.update({
           where: { id: reconciliationId },
-          data: { status: "COMPLETED", summary, config: DEFAULT_CONFIG, completedAt: new Date(), error: null },
+          data: { status: "COMPLETED", summary, config, completedAt: new Date(), error: null },
         });
         await tx.auditLog.create({
           data: auditData({
