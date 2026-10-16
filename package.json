@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "tsx --test tests/recon.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
@@ -30,6 +31,7 @@
     "eslint-config-next": "16.4.2",
     "prisma": "^7.10.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5"
   },
   "allowScripts": {
