@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft, Search } from "lucide-react";
+import { ChevronLeft, FileDown, Search } from "lucide-react";
 import type { Prisma } from "@/generated/prisma/client";
 import { requireSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
@@ -113,11 +113,25 @@ export default async function ResultsPage({ params, searchParams }: Props) {
         title={`Results · ${recon.client.name}`}
         description={`${formatPeriod(recon.period)} · ${summary.prRecords} purchase-register and ${summary.gstr2bRecords} GSTR-2B records`}
         actions={
-          recon.finalizedAt ? (
-            <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-              Finalised
-            </span>
-          ) : undefined
+          <div className="flex flex-wrap items-center gap-2">
+            {recon.finalizedAt && (
+              <span className="rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                Finalised
+              </span>
+            )}
+            {(["xlsx", "pdf"] as const).map((fmt) => {
+              const p = new URLSearchParams({ format: fmt });
+              if (cat) p.set("cat", cat);
+              if (review) p.set("review", review);
+              return (
+                <a key={fmt} href={`/api/reconciliations/${id}/export?${p.toString()}`} className={buttonSecondary} download>
+                  <FileDown className="h-4 w-4" aria-hidden="true" />
+                  {fmt === "xlsx" ? "Excel" : "PDF"}
+                  {(cat || review) && <span className="text-xs font-normal text-muted">(filtered)</span>}
+                </a>
+              );
+            })}
+          </div>
         }
       />
 

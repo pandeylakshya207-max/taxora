@@ -25,6 +25,7 @@ const ACTION_LABELS: Record<string, string> = {
   "import.remapped": "Corrected file columns",
   "reconciliation.run": "Ran a reconciliation",
   "result.reviewed": "Reviewed a result",
+  "export.generated": "Downloaded a report",
 };
 
 export const describeAction = (action: string) => ACTION_LABELS[action] ?? action;

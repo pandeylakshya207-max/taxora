@@ -24,7 +24,7 @@ const NAV: NavItem[] = [
   { label: "Clients", href: "/clients", icon: Users, ready: true },
   { label: "Reconciliation", href: "/reconciliation", icon: GitCompare, ready: true },
   { label: "Compliance", href: "/compliance", icon: CalendarCheck, ready: false },
-  { label: "Reports", href: "/reports", icon: FileDown, ready: false },
+  { label: "Reports", href: "/reports", icon: FileDown, ready: true },
 ];
 
 const SECONDARY: NavItem[] = [
