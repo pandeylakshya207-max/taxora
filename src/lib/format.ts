@@ -29,6 +29,12 @@ const ACTION_LABELS: Record<string, string> = {
   "reconciliation.finalized": "Finalised a reconciliation",
   "followup.drafted": "Drafted a supplier follow-up",
   "followup.status": "Updated a supplier follow-up",
+  "compliance.rule_created": "Added a due-date rule",
+  "compliance.rule_enabled": "Enabled a due-date rule",
+  "compliance.rule_disabled": "Disabled a due-date rule",
+  "compliance.tasks_generated": "Created compliance tasks",
+  "compliance.task_created": "Added a compliance task",
+  "compliance.task_updated": "Updated a compliance task",
 };
 
 export const describeAction = (action: string) => ACTION_LABELS[action] ?? action;

@@ -60,6 +60,19 @@ enum FollowUpStatus {
   RESOLVED
 }
 
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  NOT_APPLICABLE
+}
+
+/// Where a task's due date came from. Taxora never invents statutory dates.
+enum DueDateSource {
+  RULE
+  MANUAL
+}
+
 enum ClientStatus {
   ACTIVE
   ARCHIVED
@@ -326,5 +339,47 @@ model FollowUp {
   updatedAt      DateTime       @updatedAt
 
   @@index([firmId, supplierGstin])
+  @@index([firmId, clientId])
+}
+
+/// A recurring due-date rule the workspace defines, with the source it was taken from.
+model DueDateRule {
+  id          String   @id @default(cuid())
+  firmId      String
+  label       String // e.g. "GSTR-3B (monthly)"
+  dayOfMonth  Int
+  monthOffset Int // 1 = month after the tax period
+  sourceNote  String // where the user got this date, e.g. a notification number
+  active      Boolean  @default(true)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tasks       ComplianceTask[]
+
+  @@index([firmId, active])
+}
+
+model ComplianceTask {
+  id               String        @id @default(cuid())
+  firmId           String
+  clientId         String?
+  title            String
+  period           String? // "YYYY-MM"
+  dueDate          String // "YYYY-MM-DD", IST
+  dueDateSource    DueDateSource
+  sourceNote       String?
+  ruleId           String?
+  status           TaskStatus    @default(TODO)
+  notes            String?
+  reconciliationId String?
+  createdById      String
+  completedAt      DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  rule             DueDateRule?  @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  /// Generating from a rule twice for the same client and period is a no-op.
+  @@unique([firmId, ruleId, clientId, period])
+  @@index([firmId, status, dueDate])
   @@index([firmId, clientId])
 }

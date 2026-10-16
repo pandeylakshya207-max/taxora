@@ -5,6 +5,7 @@ import { requireSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { describeAction, formatDateTime } from "@/lib/format";
 import { PageHeader, buttonPrimary } from "@/components/app/page-header";
+import { describeDue, todayIst } from "@/lib/compliance/dates";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -13,7 +14,8 @@ export default async function DashboardPage() {
   const firmId = session.firm.id;
 
   // Every figure on this page is a live count from this firm's own records.
-  const [activeClients, archivedClients, reconciliations, recentActivity] = await Promise.all([
+  const today = todayIst();
+  const [activeClients, archivedClients, reconciliations, recentActivity, dueTasks] = await Promise.all([
     db.client.count({ where: { firmId, status: "ACTIVE" } }),
     db.client.count({ where: { firmId, status: "ARCHIVED" } }),
     db.reconciliation.count({ where: { firmId } }),
@@ -22,6 +24,12 @@ export default async function DashboardPage() {
       orderBy: { createdAt: "desc" },
       take: 6,
       include: { actor: { select: { name: true } } },
+    }),
+    db.complianceTask.findMany({
+      where: { firmId, status: { in: ["TODO", "IN_PROGRESS"] } },
+      orderBy: { dueDate: "asc" },
+      take: 6,
+      select: { id: true, title: true, dueDate: true, dueDateSource: true },
     }),
   ]);
 
@@ -49,6 +57,31 @@ export default async function DashboardPage() {
         <StatCard label="Archived clients" value={archivedClients} href="/clients?status=archived" />
         <StatCard label="GST reconciliations" value={reconciliations} href="/reconciliation" />
       </div>
+
+      <section className="rounded-xl border border-line bg-white">
+        <div className="flex items-center justify-between border-b border-line px-5 py-4">
+          <h2 className="font-semibold text-ink">Upcoming compliance</h2>
+          <Link href="/compliance" className="text-sm font-medium text-brand-600 hover:text-brand-700">All tasks</Link>
+        </div>
+        {dueTasks.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-muted">No open compliance tasks. Due dates come only from your workspace rules or manual entries.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {dueTasks.map((t) => {
+              const overdue = t.dueDate < today;
+              return (
+                <li key={t.id} className="flex items-center justify-between gap-4 px-5 py-3 text-sm">
+                  <span className="text-ink">{t.title}</span>
+                  <span className={`shrink-0 text-xs ${overdue ? "font-semibold text-rose-700" : "text-muted"}`}>
+                    {describeDue(t.dueDate, today)}
+                    <span className="ml-1 text-muted">· {t.dueDateSource === "RULE" ? "your rule" : "manual"}</span>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <section className="rounded-xl border border-line bg-white">
         <div className="border-b border-line px-5 py-4">
