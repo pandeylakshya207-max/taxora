@@ -60,7 +60,7 @@ export default async function NotificationsPage({ searchParams }: Props) {
                       {n.title}
                       {!n.readAt && <span className="sr-only"> (unread)</span>}
                     </span>
-                    <span className="block text-sm text-slate-600">{n.body}</span>
+                    <span className="block whitespace-pre-line text-sm text-slate-600">{n.body}</span>
                     <span className="mt-0.5 block text-xs text-muted">{formatDateTime(n.createdAt)}</span>
                   </span>
                 </button>

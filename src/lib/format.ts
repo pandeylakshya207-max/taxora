@@ -45,6 +45,9 @@ const ACTION_LABELS: Record<string, string> = {
   "support.ticket_status": "Changed a support request's status",
   "ai.explained": "Asked AI to explain a result",
   "ai.summarized": "Asked AI to summarise a reconciliation",
+  "automation.updated": "Changed an automation",
+  "automation.run": "Ran an automation",
+  "automation.retried": "Retried an automation",
 };
 
 export const describeAction = (action: string) => ACTION_LABELS[action] ?? action;

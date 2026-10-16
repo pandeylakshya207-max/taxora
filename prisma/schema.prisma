@@ -464,3 +464,90 @@ model AiInsight {
   @@index([firmId, scope, targetId, createdAt])
   @@index([firmId, createdAt])
 }
+
+enum AutomationKind {
+  COMPLIANCE_REMINDERS
+  REVIEW_PENDING
+  REPEATED_MISSING
+}
+
+enum RunStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum RunTrigger {
+  SCHEDULE
+  MANUAL
+  RETRY
+}
+
+/// A workspace's settings for one built-in automation. Created the first time
+/// someone saves it; names and descriptions live in code.
+model Automation {
+  id                  String          @id @default(cuid())
+  firmId              String
+  kind                AutomationKind
+  enabled             Boolean         @default(false)
+  config              Json
+  /// Daily run time, whole hour in IST (0–23).
+  runHour             Int
+  nextRunAt           DateTime?
+  lastRunAt           DateTime?
+  lastStatus          RunStatus?
+  consecutiveFailures Int             @default(0)
+  updatedById         String?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  runs                AutomationRun[]
+  alerts              AutomationAlert[]
+
+  @@unique([firmId, kind])
+  @@index([enabled, nextRunAt])
+}
+
+/// One execution, scheduled or manual, with its outcome.
+model AutomationRun {
+  id            String     @id @default(cuid())
+  firmId        String
+  automationId  String
+  trigger       RunTrigger
+  status        RunStatus  @default(RUNNING)
+  /// 1 for a first try; 2+ for consecutive automatic retries.
+  attempt       Int        @default(1)
+  startedAt     DateTime   @default(now())
+  finishedAt    DateTime?
+  /// What the run found and did (counts, items notified).
+  result        Json?
+  /// Short error message only — never a stack trace or secret.
+  error         String?
+  triggeredById String?
+  automation    Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@index([automationId, startedAt])
+  @@index([firmId, startedAt])
+}
+
+/// Remembers what an automation already alerted about, so nothing is raised twice.
+model AutomationAlert {
+  id           String     @id @default(cuid())
+  automationId String
+  dedupeKey    String
+  createdAt    DateTime   @default(now())
+  automation   Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@unique([automationId, dedupeKey])
+}
+
+/// Each authorised call to the scheduler endpoint, so the app can show whether
+/// the scheduler is actually running.
+model CronTick {
+  id        String    @id @default(cuid())
+  startedAt DateTime  @default(now())
+  finishedAt DateTime?
+  processed Int       @default(0)
+  failed    Int       @default(0)
+
+  @@index([startedAt])
+}

@@ -130,8 +130,8 @@ function StatCard({ label, value, href }: { label: string; value: number; href: 
 const STEPS = [
   { icon: Building2, title: "Add your first client", body: "Business name and GSTIN — the GSTIN is checked as you save.", ready: true },
   { icon: Upload, title: "Upload GSTR-2B and purchase register", body: "Excel or CSV. You'll preview the column mapping first.", ready: true },
-  { icon: ListChecks, title: "Review the matches", body: "Every match comes with the reason it was made.", ready: false },
-  { icon: FileDown, title: "Export the report", body: "Excel and PDF built from the reviewed results.", ready: false },
+  { icon: ListChecks, title: "Review the matches", body: "Every match comes with the reason it was made.", ready: true },
+  { icon: FileDown, title: "Export the report", body: "Excel and PDF built from the reviewed results.", ready: true },
 ];
 
 function Onboarding({ firstName }: { firstName: string }) {

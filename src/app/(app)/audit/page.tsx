@@ -21,6 +21,7 @@ const ENTITY_LABEL: Record<string, string> = {
   DueDateRule: "Due-date rule",
   ComplianceTask: "Compliance task",
   SupportTicket: "Support request",
+  Automation: "Automation",
 };
 
 type Props = { searchParams: Promise<{ entity?: string; actor?: string; from?: string; to?: string; page?: string }> };
@@ -32,6 +33,7 @@ function entityHref(entityType: string, entityId: string | null, details: Record
   if (!entityId) return null;
   if (entityType === "Client") return `/clients/${entityId}`;
   if (entityType === "Reconciliation") return `/reconciliation/${entityId}`;
+  if (entityType === "Automation") return "/automations";
   if (entityType === "MatchResult" && typeof details?.reconciliationId === "string") {
     return `/reconciliation/${details.reconciliationId}/results/${entityId}`;
   }

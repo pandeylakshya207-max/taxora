@@ -12,6 +12,7 @@ import {
   LifeBuoy,
   Truck,
   History,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,6 +32,7 @@ const NAV: NavItem[] = [
 ];
 
 const SECONDARY: NavItem[] = [
+  { label: "Automations", href: "/automations", icon: Workflow, ready: true },
   { label: "Audit trail", href: "/audit", icon: History, ready: true },
   { label: "Settings", href: "/settings", icon: Settings, ready: true },
   { label: "Support", href: "/support", icon: LifeBuoy, ready: true },
