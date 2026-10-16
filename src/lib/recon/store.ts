@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { db } from "@/lib/db";
 import { auditData } from "@/lib/audit";
+import { notify } from "@/lib/notify";
 import type { SessionContext } from "@/lib/auth/session";
 import { buildRecords, checkMapping, detectHeader, detectMapping, type ImportResult, type Mapping } from "./import";
 import { FileReadError, pickSheet, readSheets } from "./read-file";
@@ -60,9 +61,10 @@ export async function storeImport(input: ImportInput): Promise<ImportOutcome> {
   try {
     sheets = await readSheets(fileName, bytes);
   } catch (error) {
-    if (error instanceof FileReadError) return { ok: false, error: error.message };
-    console.error("[import] unexpected read failure", error);
-    return { ok: false, error: "The file could not be read." };
+    const message = error instanceof FileReadError ? error.message : "The file could not be read.";
+    if (!(error instanceof FileReadError)) console.error("[import] unexpected read failure", error);
+    await notifyImportFailed(session, reconciliationId, fileName, message);
+    return { ok: false, error: message };
   }
 
   const sheet = pickSheet(sheets, input.sheetName);
@@ -178,6 +180,7 @@ export async function storeImport(input: ImportInput): Promise<ImportOutcome> {
     );
   } catch (error) {
     console.error("[import] store failed", { reconciliationId, source, error });
+    await notifyImportFailed(session, reconciliationId, fileName, "The file was read but could not be saved. Nothing was changed.");
     return { ok: false, error: "The file was read but could not be saved. Nothing was changed — please try again." };
   }
 
@@ -209,4 +212,15 @@ export async function remapImport(
     sheetName: sheetName ?? file.sheetName,
   });
   return { ...outcome, reconciliationId: file.reconciliationId };
+}
+
+async function notifyImportFailed(session: SessionContext, reconciliationId: string, fileName: string, reason: string) {
+  await notify(db, {
+    firmId: session.firm.id,
+    kind: "import.failed",
+    title: `Import failed · ${fileName.slice(0, 80)}`,
+    body: reason,
+    href: `/reconciliation/${reconciliationId}`,
+    userIds: [session.user.id],
+  }).catch((e) => console.error("[notify] import.failed", e));
 }

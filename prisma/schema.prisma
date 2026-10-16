@@ -383,3 +383,18 @@ model ComplianceTask {
   @@index([firmId, status, dueDate])
   @@index([firmId, clientId])
 }
+
+/// In-app notification for one user. Read state is per user and persists.
+model Notification {
+  id        String    @id @default(cuid())
+  firmId    String
+  userId    String
+  kind      String // e.g. "reconciliation.completed"
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, firmId, readAt, createdAt])
+}

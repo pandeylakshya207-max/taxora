@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { auditData } from "@/lib/audit";
+import { notify } from "@/lib/notify";
 import { requireSession } from "@/lib/auth/session";
 import { fieldErrorsFrom, isUniqueViolation, readFields, type FormState } from "@/lib/form";
 import type { BusinessTypeValue } from "@/lib/format";
@@ -45,6 +46,14 @@ export async function createClient(_prev: FormState, formData: FormData): Promis
           entityId: client.id,
           details: { name: input.name, gstin: input.gstin },
         }),
+      });
+      await notify(tx, {
+        firmId: session.firm.id,
+        kind: "client.created",
+        title: `Client added · ${input.name}`,
+        body: `${session.user.name} added ${input.name}${input.gstin ? ` (${input.gstin})` : ""}.`,
+        href: `/clients/${client.id}`,
+        excludeUserId: session.user.id,
       });
       return client.id;
     });

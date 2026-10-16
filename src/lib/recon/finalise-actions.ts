@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { auditData } from "@/lib/audit";
+import { notify } from "@/lib/notify";
 import { requireSession } from "@/lib/auth/session";
 
 const schema = z.object({
@@ -67,6 +68,14 @@ export async function finaliseReconciliation(formData: FormData): Promise<void> 
           entityId: reconciliationId,
           details: { note },
         }),
+      });
+      await notify(tx, {
+        firmId: session.firm.id,
+        kind: "reconciliation.finalized",
+        title: "Reconciliation finalised",
+        body: `${session.user.name} finalised a reconciliation. Reviews are now locked.`,
+        href: `/reconciliation/${reconciliationId}/finalise`,
+        excludeUserId: session.user.id,
       });
       return "ok" as const;
     });

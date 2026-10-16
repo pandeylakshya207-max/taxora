@@ -1,6 +1,8 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { auditData } from "@/lib/audit";
+import { notify } from "@/lib/notify";
+import { formatPeriod } from "./periods";
 import type { SessionContext } from "@/lib/auth/session";
 import { DEFAULT_CONFIG, reconcile, summarize, type InvoiceRecord } from "./engine";
 import type { ImportStats } from "./store";
@@ -20,7 +22,7 @@ export type RunOutcome = { ok: true } | { ok: false; error: string };
 export async function runReconciliation(session: SessionContext, reconciliationId: string): Promise<RunOutcome> {
   const recon = await db.reconciliation.findFirst({
     where: { id: reconciliationId, firmId: session.firm.id },
-    select: { id: true, status: true, files: { select: { source: true, stats: true } } },
+    select: { id: true, status: true, period: true, client: { select: { name: true } }, files: { select: { source: true, stats: true } } },
   });
   if (!recon) return { ok: false, error: "Reconciliation not found." };
   if (recon.status === "COMPLETED") return { ok: false, error: "This reconciliation has already been run." };
@@ -117,6 +119,16 @@ export async function runReconciliation(session: SessionContext, reconciliationI
             details: { results: results.length, needsReview: summary.needsReview },
           }),
         });
+        await notify(tx, {
+          firmId: session.firm.id,
+          kind: "reconciliation.completed",
+          title: `Reconciliation completed · ${recon.client.name} · ${formatPeriod(recon.period)}`,
+          body:
+            summary.needsReview > 0
+              ? `${results.length} results. ${summary.needsReview} need review before finalisation.`
+              : `${results.length} results. Every record matched exactly.`,
+          href: `/reconciliation/${reconciliationId}/results`,
+        });
       },
       { maxWait: 10_000, timeout: 120_000 },
     );
@@ -126,6 +138,14 @@ export async function runReconciliation(session: SessionContext, reconciliationI
     await db.reconciliation
       .update({ where: { id: reconciliationId }, data: { status: "FAILED", error: "The run did not complete. No results were saved." } })
       .catch(() => undefined);
+    await notify(db, {
+      firmId: session.firm.id,
+      kind: "reconciliation.failed",
+      title: `Reconciliation failed · ${recon.client.name} · ${formatPeriod(recon.period)}`,
+      body: "The run did not complete and no results were saved. You can try again from the reconciliation page.",
+      href: `/reconciliation/${reconciliationId}`,
+      userIds: [session.user.id],
+    }).catch(() => undefined);
     return { ok: false, error: "The reconciliation could not be completed. No results were saved — please try again." };
   }
 }

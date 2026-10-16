@@ -1,5 +1,7 @@
 import { Suspense } from "react";
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { Bell, LogOut } from "lucide-react";
+import { db } from "@/lib/db";
 import { Logo } from "@/components/brand/logo";
 import { SidebarNav } from "@/components/app/sidebar-nav";
 import { requireSession } from "@/lib/auth/session";
@@ -61,6 +63,9 @@ async function AuthGate({ children }: { children: React.ReactNode }) {
 async function UserMenu() {
   // Same request-scoped cached lookup as AuthGate: no extra database call.
   const session = await requireSession();
+  const unread = await db.notification.count({
+    where: { userId: session.user.id, firmId: session.firm.id, readAt: null },
+  });
   const initials = session.user.name
     .split(/\s+/)
     .filter(Boolean)
@@ -72,6 +77,18 @@ async function UserMenu() {
     <>
       <p className="truncate text-sm font-medium text-slate-700">{session.firm.name}</p>
       <div className="flex items-center gap-3">
+        <Link
+          href="/notifications"
+          aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
+          className="relative rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink"
+        >
+          <Bell className="h-5 w-5" aria-hidden="true" />
+          {unread > 0 && (
+            <span className="tabular absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-semibold text-white">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )}
+        </Link>
         <div className="hidden text-right sm:block">
           <p className="text-sm font-medium leading-tight text-ink">{session.user.name}</p>
           <p className="text-xs leading-tight text-muted">{session.role.toLowerCase()}</p>
@@ -115,5 +132,7 @@ function PageSkeleton() {
   );
 }
 
-// Auth-gated layout: reads the session cookie, so it is request-specific by design.
+// The user menu and the auth gate read the session cookie, so this layout is
+// request-specific by design (Next.js docs: use this for auth gating in a layout).
+// Pages below still get instant loading skeletons from loading.tsx.
 export const instant = false;

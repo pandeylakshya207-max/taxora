@@ -11,6 +11,7 @@ import {
   Settings,
   LifeBuoy,
   Truck,
+  History,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,6 +31,7 @@ const NAV: NavItem[] = [
 ];
 
 const SECONDARY: NavItem[] = [
+  { label: "Audit trail", href: "/audit", icon: History, ready: true },
   { label: "Settings", href: "/settings", icon: Settings, ready: false },
   { label: "Support", href: "/support", icon: LifeBuoy, ready: false },
 ];
