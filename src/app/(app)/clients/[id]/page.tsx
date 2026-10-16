@@ -5,7 +5,8 @@ import { CircleCheck, ChevronLeft, GitCompare } from "lucide-react";
 import { requireSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { businessTypeLabel, describeAction, formatDate, formatDateTime } from "@/lib/format";
-import { PageHeader } from "@/components/app/page-header";
+import { PageHeader, buttonPrimary } from "@/components/app/page-header";
+import { formatPeriod } from "@/lib/recon/periods";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -31,6 +32,13 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
     orderBy: { createdAt: "desc" },
     take: 20,
     include: { actor: { select: { name: true } } },
+  });
+
+  const runs = await db.reconciliation.findMany({
+    where: { firmId: session.firm.id, clientId: client.id },
+    orderBy: { createdAt: "desc" },
+    take: 12,
+    select: { id: true, period: true, status: true },
   });
 
   const details: [string, React.ReactNode][] = [
@@ -90,16 +98,32 @@ export default async function ClientDetailPage({ params, searchParams }: Props) 
         </section>
       </div>
 
-      <section className="flex items-center gap-4 rounded-xl border border-dashed border-line bg-white p-5">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
-          <GitCompare className="h-5 w-5" aria-hidden="true" />
+      <section className="rounded-xl border border-line bg-white">
+        <div className="flex items-center justify-between gap-4 border-b border-line px-5 py-4">
+          <h2 className="flex items-center gap-2 font-semibold text-ink">
+            <GitCompare className="h-4 w-4 text-slate-500" aria-hidden="true" />
+            GST reconciliations
+          </h2>
+          {client.status === "ACTIVE" && (
+            <Link href={`/reconciliation/new?client=${client.id}`} className={buttonPrimary}>
+              New reconciliation
+            </Link>
+          )}
         </div>
-        <div>
-          <p className="font-semibold text-ink">GST reconciliations</p>
-          <p className="text-sm text-slate-600">
-            Uploading GSTR-2B and purchase registers for this client is the next module being built.
-          </p>
-        </div>
+        {runs.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-muted">No reconciliations for this client yet.</p>
+        ) : (
+          <ul className="divide-y divide-line">
+            {runs.map((r) => (
+              <li key={r.id}>
+                <Link href={`/reconciliation/${r.id}`} className="flex items-center justify-between px-5 py-3 text-sm hover:bg-surface">
+                  <span className="font-medium text-ink">{formatPeriod(r.period)}</span>
+                  <span className="text-xs text-muted">{r.status === "DRAFT" ? "Draft" : r.status === "COMPLETED" ? "Completed" : "Failed"}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </div>
   );

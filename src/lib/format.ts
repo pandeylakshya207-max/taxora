@@ -20,6 +20,11 @@ const ACTION_LABELS: Record<string, string> = {
   "client.updated": "Updated a client",
   "client.archived": "Archived a client",
   "user.email_verified": "Verified their email",
+  "reconciliation.created": "Started a reconciliation",
+  "import.uploaded": "Uploaded a file",
+  "import.remapped": "Corrected file columns",
+  "reconciliation.run": "Ran a reconciliation",
+  "result.reviewed": "Reviewed a result",
 };
 
 export const describeAction = (action: string) => ACTION_LABELS[action] ?? action;

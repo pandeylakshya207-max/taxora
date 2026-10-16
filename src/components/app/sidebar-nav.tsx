@@ -22,7 +22,7 @@ type NavItem = { label: string; href: string; icon: LucideIcon; ready: boolean }
 const NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, ready: true },
   { label: "Clients", href: "/clients", icon: Users, ready: true },
-  { label: "Reconciliation", href: "/reconciliation", icon: GitCompare, ready: false },
+  { label: "Reconciliation", href: "/reconciliation", icon: GitCompare, ready: true },
   { label: "Compliance", href: "/compliance", icon: CalendarCheck, ready: false },
   { label: "Reports", href: "/reports", icon: FileDown, ready: false },
 ];

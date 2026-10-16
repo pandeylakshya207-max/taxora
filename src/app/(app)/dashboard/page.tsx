@@ -13,9 +13,10 @@ export default async function DashboardPage() {
   const firmId = session.firm.id;
 
   // Every figure on this page is a live count from this firm's own records.
-  const [activeClients, archivedClients, recentActivity] = await Promise.all([
+  const [activeClients, archivedClients, reconciliations, recentActivity] = await Promise.all([
     db.client.count({ where: { firmId, status: "ACTIVE" } }),
     db.client.count({ where: { firmId, status: "ARCHIVED" } }),
+    db.reconciliation.count({ where: { firmId } }),
     db.auditLog.findMany({
       where: { firmId },
       orderBy: { createdAt: "desc" },
@@ -46,12 +47,7 @@ export default async function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard label="Active clients" value={activeClients} href="/clients" />
         <StatCard label="Archived clients" value={archivedClients} href="/clients?status=archived" />
-        <div className="rounded-xl border border-dashed border-line bg-white p-5">
-          <p className="text-sm text-muted">GST reconciliations</p>
-          <p className="mt-2 text-sm text-slate-600">
-            Reconciliation is the next module being built. Figures will appear here once it is live.
-          </p>
-        </div>
+        <StatCard label="GST reconciliations" value={reconciliations} href="/reconciliation" />
       </div>
 
       <section className="rounded-xl border border-line bg-white">
@@ -100,7 +96,7 @@ function StatCard({ label, value, href }: { label: string; value: number; href: 
 
 const STEPS = [
   { icon: Building2, title: "Add your first client", body: "Business name and GSTIN — the GSTIN is checked as you save.", ready: true },
-  { icon: Upload, title: "Upload GSTR-2B and purchase register", body: "Excel or CSV. You'll preview the column mapping first.", ready: false },
+  { icon: Upload, title: "Upload GSTR-2B and purchase register", body: "Excel or CSV. You'll preview the column mapping first.", ready: true },
   { icon: ListChecks, title: "Review the matches", body: "Every match comes with the reason it was made.", ready: false },
   { icon: FileDown, title: "Export the report", body: "Excel and PDF built from the reviewed results.", ready: false },
 ];

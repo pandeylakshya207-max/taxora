@@ -7,13 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/recon.test.ts tests/import.test.ts"
+    "test": "tsx --test tests/recon.test.ts tests/import.test.ts tests/csv.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "decimal.js": "^10.6.0",
     "dotenv": "^18.0.8",
+    "exceljs": "^4.4.0",
     "lucide-react": "^1.58.0",
     "next": "16.4.2",
     "pg": "^8.23.1",
@@ -38,5 +39,8 @@
     "prisma@7.10.1": true,
     "@prisma/engines@7.10.1": true,
     "unrs-resolver@1.12.2": true
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }

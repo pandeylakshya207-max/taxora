@@ -31,6 +31,29 @@ enum OtpPurpose {
   EMAIL_VERIFICATION
 }
 
+enum ReconStatus {
+  DRAFT
+  COMPLETED
+  FAILED
+}
+
+enum SourceKind {
+  PURCHASE_REGISTER
+  GSTR2B
+}
+
+enum DocKind {
+  INVOICE
+  CREDIT_NOTE
+  DEBIT_NOTE
+}
+
+enum ReviewStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
 enum ClientStatus {
   ACTIVE
   ARCHIVED
@@ -58,6 +81,7 @@ model Firm {
   clients     Client[]
   sessions    Session[]
   auditLogs   AuditLog[]
+  reconciliations Reconciliation[]
 }
 
 model User {
@@ -74,6 +98,7 @@ model User {
   clientsMade  Client[]     @relation("ClientCreatedBy")
   auditLogs    AuditLog[]
   otps         EmailOtp[]
+  reconciliations Reconciliation[]
 }
 
 /// One-time codes. Only a hash of the code is stored. A code is single-use,
@@ -138,6 +163,7 @@ model Client {
   archivedAt   DateTime?
   firm         Firm          @relation(fields: [firmId], references: [id], onDelete: Restrict)
   createdBy    User          @relation("ClientCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  reconciliations Reconciliation[]
 
   // One firm cannot hold the same GSTIN twice. Postgres allows many NULLs,
   // so unregistered clients without a GSTIN are not blocked by this.
@@ -161,4 +187,117 @@ model AuditLog {
 
   @@index([firmId, createdAt])
   @@index([firmId, entityType, entityId])
+}
+
+/// One reconciliation of a client's purchase register against GSTR-2B for a tax period.
+/// A client can have several runs for the same period (e.g. after correcting a file).
+model Reconciliation {
+  id          String       @id @default(cuid())
+  firmId      String
+  clientId    String
+  period      String // "YYYY-MM"
+  status      ReconStatus  @default(DRAFT)
+  /// Engine thresholds used for this run, saved so results stay explainable later.
+  config      Json?
+  /// Counts derived from MatchResult rows at completion time.
+  summary     Json?
+  error       String?
+  createdById String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  completedAt DateTime?
+  /// Set once by an authorised user after review. Results are read-only afterwards.
+  finalizedAt   DateTime?
+  finalizedById String?
+  finalNote     String?
+  firm        Firm         @relation(fields: [firmId], references: [id], onDelete: Restrict)
+  client      Client       @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  createdBy   User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  files       ImportFile[]
+  rows        InvoiceRow[]
+  results     MatchResult[]
+
+  @@index([firmId, createdAt])
+  @@index([firmId, clientId, period])
+}
+
+/// The uploaded file (kept, so the column mapping can be corrected and re-applied
+/// without uploading again) plus what the import found in it.
+model ImportFile {
+  id               String         @id @default(cuid())
+  firmId           String
+  reconciliationId String
+  source           SourceKind
+  fileName         String
+  fileSize         Int
+  sha256           String
+  content          Bytes
+  sheetName        String?
+  headerRowIndex   Int
+  dataStartIndex   Int
+  headers          Json
+  mapping          Json
+  stats            Json
+  /// Row-level problems, capped for storage; stats hold the full counts.
+  errors           Json
+  warnings         Json
+  uploadedById     String
+  createdAt        DateTime       @default(now())
+  reconciliation   Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  rows             InvoiceRow[]
+
+  @@unique([reconciliationId, source])
+  @@index([firmId, sha256])
+}
+
+/// One validated invoice line. Amounts are integer paise (BigInt) — exact, never floating point.
+model InvoiceRow {
+  id               String         @id @default(cuid())
+  firmId           String
+  reconciliationId String
+  importFileId     String
+  source           SourceKind
+  sourceRow        Int
+  gstin            String
+  supplierName     String?
+  invoiceNo        String
+  invoiceDate      String? // ISO YYYY-MM-DD
+  docType          DocKind
+  taxable          BigInt
+  igst             BigInt
+  cgst             BigInt
+  sgst             BigInt
+  cess             BigInt
+  /// Cell text exactly as uploaded, for audit.
+  original         Json
+  reconciliation   Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  importFile       ImportFile     @relation(fields: [importFileId], references: [id], onDelete: Cascade)
+
+  @@index([reconciliationId, source])
+  @@index([firmId, gstin])
+}
+
+/// One engine result. Every imported row appears in exactly one result per run.
+model MatchResult {
+  id               String         @id @default(cuid())
+  firmId           String
+  reconciliationId String
+  category         String
+  prRowId          String?
+  b2bRowId         String?
+  flags            String[]
+  reasons          String[]
+  needsReview      Boolean
+  score            Json?
+  diffs            Json?
+  relatedIds       String[]
+  reviewStatus     ReviewStatus   @default(PENDING)
+  reviewNote       String?
+  reviewedById     String?
+  reviewedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  reconciliation   Reconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+
+  @@index([reconciliationId, category])
+  @@index([reconciliationId, needsReview])
 }

@@ -52,7 +52,7 @@ export async function createClient(_prev: FormState, formData: FormData): Promis
     if (isUniqueViolation(error)) {
       return {
         status: "error",
-        fieldErrors: { gstin: "A client with this GSTIN already exists in your firm." },
+        fieldErrors: { gstin: "A client with this GSTIN already exists in your workspace." },
         values,
       };
     }
