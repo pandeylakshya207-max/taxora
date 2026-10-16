@@ -12,12 +12,16 @@ import { ITC_LABELS } from "@/lib/reports/itc";
 import { finaliseReconciliation } from "@/lib/recon/finalise-actions";
 import { PageHeader, buttonSecondary } from "@/components/app/page-header";
 import { SubmitButton } from "../submit-button";
+import { AiPanel } from "@/components/app/ai-panel";
+import { summarizeReconciliation } from "@/lib/ai/actions";
+import { isAiConfigured } from "@/lib/ai/client";
+import { reconSummarySchema } from "@/lib/ai/prompts";
 
 export const metadata: Metadata = { title: "ITC review & finalisation" };
 
 type Props = {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string; done?: string }>;
+  searchParams: Promise<{ error?: string; done?: string; aiError?: string }>;
 };
 
 const TONE = {
@@ -49,9 +53,17 @@ export default async function FinalisePage({ params, searchParams }: Props) {
   })).filter((x) => x.count > 0);
   const pending = data.counts.pendingReview;
   const canFinalise = session.role !== "MEMBER";
-  const finaliser = recon.finalizedById
-    ? await db.user.findUnique({ where: { id: recon.finalizedById }, select: { name: true } })
-    : null;
+  const [finaliser, insight] = await Promise.all([
+    recon.finalizedById ? db.user.findUnique({ where: { id: recon.finalizedById }, select: { name: true } }) : null,
+    db.aiInsight.findFirst({
+      where: { firmId: session.firm.id, scope: "reconciliation", targetId: id },
+      orderBy: { createdAt: "desc" },
+      select: { model: true, output: true, createdAt: true },
+    }),
+  ]);
+  // Stored output is re-validated before display; anything that fails is not shown.
+  const parsed = insight ? reconSummarySchema.safeParse(insight.output) : null;
+  const aiSummary = parsed?.success ? parsed.data : null;
 
   return (
     <div className="space-y-6">
@@ -155,6 +167,31 @@ export default async function FinalisePage({ params, searchParams }: Props) {
           </>
         )}
       </section>
+
+      <AiPanel
+        title="Review overview"
+        configured={isAiConfigured()}
+        error={sp.aiError}
+        generated={aiSummary && insight ? { model: insight.model, createdAt: insight.createdAt } : null}
+        action={summarizeReconciliation}
+        hidden={{ reconciliationId: id }}
+        buttonText="Summarise this reconciliation"
+      >
+        {aiSummary && (
+          <>
+            <p>{aiSummary.overview}</p>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">Suggested priorities</p>
+              <ol className="mt-1 list-decimal space-y-1.5 pl-5">
+                {aiSummary.priorities.map((p, i) => (
+                  <li key={i}><span className="font-medium">{p.title}</span> — <span className="text-slate-700">{p.why}</span></li>
+                ))}
+              </ol>
+            </div>
+            <p className="text-xs text-muted">Only counts, categories and amounts were sent — no GSTINs, supplier or client names.</p>
+          </>
+        )}
+      </AiPanel>
 
       <section className="rounded-2xl border border-line bg-white p-5 sm:p-6">
         <h2 className="flex items-center gap-2 font-semibold text-ink">

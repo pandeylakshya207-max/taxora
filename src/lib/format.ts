@@ -43,6 +43,8 @@ const ACTION_LABELS: Record<string, string> = {
   "workspace.matching_reset": "Reset matching rules to defaults",
   "support.ticket_created": "Raised a support request",
   "support.ticket_status": "Changed a support request's status",
+  "ai.explained": "Asked AI to explain a result",
+  "ai.summarized": "Asked AI to summarise a reconciliation",
 };
 
 export const describeAction = (action: string) => ACTION_LABELS[action] ?? action;

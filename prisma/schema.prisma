@@ -448,3 +448,19 @@ model SupportMessage {
 
   @@index([ticketId, createdAt])
 }
+
+/// A stored, schema-validated AI suggestion. Kept so it can be shown again
+/// without another call, and so it is clear which model produced it and when.
+model AiInsight {
+  id          String   @id @default(cuid())
+  firmId      String
+  scope       String // "result" | "reconciliation"
+  targetId    String
+  model       String
+  output      Json
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([firmId, scope, targetId, createdAt])
+  @@index([firmId, createdAt])
+}

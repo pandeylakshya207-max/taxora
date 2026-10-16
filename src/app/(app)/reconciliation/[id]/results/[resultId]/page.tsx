@@ -12,12 +12,16 @@ import { CATEGORY_INFO, FLAG_LABEL, REVIEW_LABEL, isCategory } from "@/lib/recon
 import { FIELD_LABELS, type Field } from "@/lib/recon/import";
 import { reviewResult } from "@/lib/recon/run-actions";
 import { SubmitButton } from "../../submit-button";
+import { AiPanel, LIKELIHOOD_LABEL } from "@/components/app/ai-panel";
+import { explainResult } from "@/lib/ai/actions";
+import { isAiConfigured } from "@/lib/ai/client";
+import { resultExplanationSchema } from "@/lib/ai/prompts";
 
 export const metadata: Metadata = { title: "Invoice detail" };
 
 type Props = {
   params: Promise<{ id: string; resultId: string }>;
-  searchParams: Promise<{ back?: string; saved?: string; error?: string }>;
+  searchParams: Promise<{ back?: string; saved?: string; error?: string; aiError?: string }>;
 };
 
 const AMOUNTS = ["taxable", "igst", "cgst", "sgst", "cess"] as const;
@@ -58,7 +62,7 @@ export default async function ResultDetailPage({ params, searchParams }: Props) 
   if (!result) notFound();
 
   const rowIds = [result.prRowId, result.b2bRowId, ...result.relatedIds].filter((x): x is string => !!x);
-  const [rows, history, reviewer] = await Promise.all([
+  const [rows, history, reviewer, insight] = await Promise.all([
     db.invoiceRow.findMany({
       where: { id: { in: rowIds }, firmId: session.firm.id },
       select: {
@@ -73,7 +77,15 @@ export default async function ResultDetailPage({ params, searchParams }: Props) 
       include: { actor: { select: { name: true } } },
     }),
     result.reviewedById ? db.user.findUnique({ where: { id: result.reviewedById }, select: { name: true } }) : null,
+    db.aiInsight.findFirst({
+      where: { firmId: session.firm.id, scope: "result", targetId: result.id },
+      orderBy: { createdAt: "desc" },
+      select: { model: true, output: true, createdAt: true },
+    }),
   ]);
+  // Stored output is re-validated before display; anything that fails is not shown.
+  const explained = insight ? resultExplanationSchema.safeParse(insight.output) : null;
+  const explanation = explained?.success ? explained.data : null;
   const byId = new Map(rows.map((r) => [r.id, r]));
   const pr = result.prRowId ? byId.get(result.prRowId) : undefined;
   const b = result.b2bRowId ? byId.get(result.b2bRowId) : undefined;
@@ -127,6 +139,38 @@ export default async function ResultDetailPage({ params, searchParams }: Props) 
           </div>
         )}
       </section>
+
+      {result.category !== "EXACT" && (
+        <AiPanel
+          title="Plain-language explanation"
+          configured={isAiConfigured()}
+          error={sp.aiError}
+          generated={explanation && insight ? { model: insight.model, createdAt: insight.createdAt } : null}
+          action={explainResult}
+          hidden={{ resultId: result.id, back: self }}
+          buttonText="Explain this difference"
+        >
+          {explanation && (
+            <>
+              <p>{explanation.summary}</p>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Possible causes</p>
+                <ul className="mt-1 space-y-1">
+                  {explanation.likely_causes.map((c, i) => (
+                    <li key={i}><span className="mr-2 rounded bg-white px-1.5 py-0.5 text-xs text-slate-600 ring-1 ring-inset ring-line">{LIKELIHOOD_LABEL[c.likelihood]}</span>{c.cause}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted">Suggested checks</p>
+                <ul className="mt-1 list-disc space-y-1 pl-5">
+                  {explanation.suggested_checks.map((c, i) => <li key={i}>{c}</li>)}
+                </ul>
+              </div>
+            </>
+          )}
+        </AiPanel>
+      )}
 
       {/* Side by side */}
       <section className="overflow-hidden rounded-xl border border-line bg-white">
