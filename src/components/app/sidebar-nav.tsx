@@ -10,6 +10,7 @@ import {
   FileDown,
   Settings,
   LifeBuoy,
+  Truck,
   type LucideIcon,
 } from "lucide-react";
 
@@ -23,6 +24,7 @@ const NAV: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, ready: true },
   { label: "Clients", href: "/clients", icon: Users, ready: true },
   { label: "Reconciliation", href: "/reconciliation", icon: GitCompare, ready: true },
+  { label: "Vendors", href: "/vendors", icon: Truck, ready: true },
   { label: "Compliance", href: "/compliance", icon: CalendarCheck, ready: false },
   { label: "Reports", href: "/reports", icon: FileDown, ready: true },
 ];

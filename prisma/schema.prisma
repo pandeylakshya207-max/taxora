@@ -54,6 +54,12 @@ enum ReviewStatus {
   REJECTED
 }
 
+enum FollowUpStatus {
+  DRAFT
+  SENT
+  RESOLVED
+}
+
 enum ClientStatus {
   ACTIVE
   ARCHIVED
@@ -300,4 +306,25 @@ model MatchResult {
 
   @@index([reconciliationId, category])
   @@index([reconciliationId, needsReview])
+}
+
+/// A supplier follow-up email drafted in Taxora. Taxora does not send it:
+/// SENT means a user confirmed they sent it themselves, outside Taxora.
+model FollowUp {
+  id             String         @id @default(cuid())
+  firmId         String
+  clientId       String
+  supplierGstin  String
+  periodLabel    String
+  matchResultIds String[]
+  subject        String
+  body           String
+  status         FollowUpStatus @default(DRAFT)
+  note           String?
+  createdById    String
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([firmId, supplierGstin])
+  @@index([firmId, clientId])
 }

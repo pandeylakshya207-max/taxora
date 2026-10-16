@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/recon.test.ts tests/import.test.ts tests/csv.test.ts tests/pdf.test.ts tests/itc.test.ts"
+    "test": "tsx --test tests/recon.test.ts tests/import.test.ts tests/csv.test.ts tests/pdf.test.ts tests/itc.test.ts tests/vendors.test.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
