@@ -1,0 +1,10 @@
+Test Traders
+Purchase Register — 2026-07
+
+Date,Particulars,Party GSTIN,Supplier Invoice No,Taxable Value,IGST,CGST,SGST,Cess,Invoice Value
+04-07-2026,Rajasthan Steel Traders,08AAACR1234A1Z3,RST/087,"98,000.00",,"8,820.00","8,820.00",,"1,15,640.00"
+10-07-2026,Mumbai Packaging Pvt Ltd,27AABCM5678B1ZH,MP-2026-0398,"54,000.00","6,480.00",,,,"60,480.00"
+15-07-2026,Shree Ganesh Electricals,08AADFS4321C1ZN,SGE/71,"31,000.00",,"2,790.00","2,790.00",,"36,580.00"
+20-07-2026,Kutch Chemicals LLP,24AAECK9876D1ZA,KC/2026/1302,"47,000.00","8,460.00",,,,"55,460.00"
+22-07-2026,Haryana Hardware Mart,06AALCH3333G1ZQ,HH/2026/287,"19,500.00","3,510.00",,,,"23,010.00"
+,Grand Total,,,,,,,,"2,91,170.00"
