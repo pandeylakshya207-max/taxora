@@ -1,5 +1,6 @@
 import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
+import { revalidatePath } from "next/cache";
 
 /**
  * Create in-app notifications. Pass the transaction client when the event is
@@ -31,4 +32,10 @@ export async function notify(
       href: input.href ?? null,
     })),
   });
+  // Refresh the bell count in the shared layout on the next page the user sees.
+  try {
+    revalidatePath("/", "layout");
+  } catch {
+    // Outside a request (e.g. a script) there is nothing to refresh.
+  }
 }

@@ -130,7 +130,7 @@ export async function runReconciliation(session: SessionContext, reconciliationI
           title: `Reconciliation completed · ${recon.client.name} · ${formatPeriod(recon.period)}`,
           body:
             summary.needsReview > 0
-              ? `${results.length} results. ${summary.needsReview} need review before finalisation.`
+              ? `${results.length} results. ${summary.needsReview} ${summary.needsReview === 1 ? "needs" : "need"} review before finalisation.`
               : `${results.length} results. Every record matched exactly.`,
           href: `/reconciliation/${reconciliationId}/results`,
         });

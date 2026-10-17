@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requireSession } from "@/lib/auth/session";
 
@@ -14,6 +15,9 @@ export async function openNotification(formData: FormData): Promise<void> {
   });
   if (!n) redirect("/notifications");
   if (!n.readAt) await db.notification.update({ where: { id: n.id }, data: { readAt: new Date() } });
+  // The bell count lives in the shared layout, which the browser keeps between
+  // pages; tell Next.js to refresh it so the number matches.
+  revalidatePath("/", "layout");
   // Only internal links are followed.
   redirect(n.href && n.href.startsWith("/") && !n.href.startsWith("//") ? n.href : "/notifications");
 }
@@ -24,5 +28,6 @@ export async function markAllRead(): Promise<void> {
     where: { userId: session.user.id, firmId: session.firm.id, readAt: null },
     data: { readAt: new Date() },
   });
+  revalidatePath("/", "layout");
   redirect("/notifications");
 }

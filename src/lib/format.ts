@@ -24,7 +24,7 @@ const ACTION_LABELS: Record<string, string> = {
   "import.uploaded": "Uploaded a file",
   "import.remapped": "Corrected file columns",
   "reconciliation.run": "Ran a reconciliation",
-  "result.reviewed": "Reviewed a result",
+  "result.reviewed": "Recorded a review decision",
   "export.generated": "Downloaded a report",
   "reconciliation.finalized": "Finalised a reconciliation",
   "followup.drafted": "Drafted a supplier follow-up",
