@@ -8,7 +8,7 @@ import { describeAction, formatDateTime } from "@/lib/format";
 import { formatPaise } from "@/lib/recon/money";
 import { normalizeInvoiceNo } from "@/lib/recon/normalize";
 import { DEFAULT_CONFIG, type AmountDiffs, type ReconConfig, type ScoreBreakdown } from "@/lib/recon/engine";
-import { CATEGORY_INFO, FLAG_LABEL, REVIEW_LABEL, isCategory } from "@/lib/recon/labels";
+import { CATEGORY_INFO, FLAG_LABEL, REVIEW_LABEL, isCategory, reviewLabel, canReject } from "@/lib/recon/labels";
 import { FIELD_LABELS, type Field } from "@/lib/recon/import";
 import { reviewResult } from "@/lib/recon/run-actions";
 import { SubmitButton } from "../../submit-button";
@@ -265,7 +265,7 @@ export default async function ResultDetailPage({ params, searchParams }: Props) 
           ) : (
             <>
               <p className="mt-2 text-sm text-slate-700">
-                Status: <span className="font-medium">{REVIEW_LABEL[result.reviewStatus]}</span>
+                Status: <span className="font-medium">{reviewLabel(result.category, result.reviewStatus)}</span>
                 {reviewer && result.reviewedAt && <span className="text-muted"> · {reviewer.name}, {formatDateTime(result.reviewedAt)}</span>}
               </p>
               {result.reviewNote && <p className="mt-1 rounded-lg bg-surface p-2 text-sm text-slate-700">“{result.reviewNote}”</p>}
@@ -276,7 +276,7 @@ export default async function ResultDetailPage({ params, searchParams }: Props) 
                   <input type="hidden" name="resultId" value={result.id} />
                   <input type="hidden" name="back" value={self} />
                   <label htmlFor="note" className="block text-sm font-medium text-slate-700">
-                    Note <span className="font-normal text-muted">(required to reject)</span>
+                    Note <span className="font-normal text-muted">{canReject(result.category) ? "(required to reject)" : "(optional)"}</span>
                   </label>
                   <textarea
                     id="note"
@@ -380,7 +380,7 @@ export default async function ResultDetailPage({ params, searchParams }: Props) 
                 <li key={h.id} className="px-5 py-3">
                   <p className="text-ink">
                     {describeAction(h.action)}
-                    {d?.to && <span className="text-slate-600"> → {REVIEW_LABEL[d.to as keyof typeof REVIEW_LABEL] ?? d.to}</span>}
+                    {d?.to && <span className="text-slate-600"> → {d.to in REVIEW_LABEL ? reviewLabel(result.category, d.to as keyof typeof REVIEW_LABEL) : d.to}</span>}
                   </p>
                   {d?.note && <p className="text-xs text-slate-600">“{d.note}”</p>}
                   <p className="text-xs text-muted">{h.actor?.name ?? "System"} · {formatDateTime(h.createdAt)}</p>

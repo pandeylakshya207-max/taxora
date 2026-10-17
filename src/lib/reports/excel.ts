@@ -1,5 +1,5 @@
 import ExcelJS from "exceljs";
-import { CATEGORY_INFO, CATEGORY_ORDER, FLAG_LABEL, REVIEW_LABEL, isCategory } from "../recon/labels";
+import { CATEGORY_INFO, CATEGORY_ORDER, FLAG_LABEL, isCategory, reviewLabel } from "../recon/labels";
 import { REPORT_DISCLAIMER, sideTotal, type ReportData, type ReportLine } from "./types";
 import { ITC_LABELS } from "./itc";
 
@@ -66,7 +66,7 @@ function lineToRow(l: ReportLine) {
     result: isCategory(l.category) ? CATEGORY_INFO[l.category].label : l.category,
     flags: l.flags.map((f) => FLAG_LABEL[f] ?? f).join(", "),
     reason: l.reason,
-    review: l.needsReview ? REVIEW_LABEL[l.reviewStatus] : "Not needed",
+    review: l.needsReview ? reviewLabel(l.category, l.reviewStatus) : "Not needed",
     note: l.reviewNote ?? "",
     gstin: (p ?? b)?.gstin ?? "",
     supplier: p?.supplierName ?? b?.supplierName ?? "",

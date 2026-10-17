@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { formatPaise } from "../recon/money";
-import { CATEGORY_INFO, CATEGORY_ORDER, FLAG_LABEL, REVIEW_LABEL, isCategory } from "../recon/labels";
+import { CATEGORY_INFO, CATEGORY_ORDER, FLAG_LABEL, isCategory, reviewLabel } from "../recon/labels";
 import { REPORT_DISCLAIMER, sideTotal, type ReportData } from "./types";
 import { ITC_LABELS } from "./itc";
 
@@ -228,7 +228,7 @@ export async function buildReportPdf(data: ReportData): Promise<Uint8Array> {
         l.pr ? formatPaise(sideTotal(l.pr)!) : "—",
         l.b2b ? formatPaise(sideTotal(l.b2b)!) : "—",
         l.diffTotal === null ? "—" : formatPaise(l.diffTotal),
-        l.needsReview ? REVIEW_LABEL[l.reviewStatus] : "—",
+        l.needsReview ? reviewLabel(l.category, l.reviewStatus) : "—",
         [l.flags.map((f) => FLAG_LABEL[f] ?? f).join(", "), l.reason].filter(Boolean).join(" — "),
       ];
       let x = M + 4;

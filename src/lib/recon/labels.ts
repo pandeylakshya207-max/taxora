@@ -71,6 +71,14 @@ export const REVIEW_LABEL = {
   REJECTED: "Rejected",
 } as const;
 
+/** Results with nothing to pair (missing / duplicate) are "reviewed", not "accepted". */
+const NO_PAIR = new Set(["MISSING_IN_2B", "MISSING_IN_PR", "DUPLICATE"]);
+export const canReject = (category: string) => !NO_PAIR.has(category);
+
+export function reviewLabel(category: string, status: keyof typeof REVIEW_LABEL): string {
+  return status === "ACCEPTED" && NO_PAIR.has(category) ? "Reviewed" : REVIEW_LABEL[status];
+}
+
 export function isCategory(value: string | undefined): value is CategoryKey {
   return !!value && (CATEGORY_ORDER as readonly string[]).includes(value);
 }

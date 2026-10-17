@@ -7,7 +7,7 @@ import { requireSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { formatPaise } from "@/lib/recon/money";
 import { formatPeriod } from "@/lib/recon/periods";
-import { CATEGORY_INFO, CATEGORY_ORDER, FLAG_LABEL, REVIEW_LABEL, isCategory } from "@/lib/recon/labels";
+import { CATEGORY_INFO, CATEGORY_ORDER, FLAG_LABEL, isCategory, reviewLabel } from "@/lib/recon/labels";
 import type { AmountDiffs, ReconSummary } from "@/lib/recon/engine";
 import { PageHeader, buttonPrimary, buttonSecondary } from "@/components/app/page-header";
 
@@ -229,7 +229,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
                       <td className="px-4 py-3 text-xs">
                         {r.needsReview ? (
                           <span className={r.reviewStatus === "PENDING" ? "text-amber-700" : r.reviewStatus === "ACCEPTED" ? "text-emerald-700" : "text-rose-700"}>
-                            {REVIEW_LABEL[r.reviewStatus]}
+                            {reviewLabel(r.category, r.reviewStatus)}
                           </span>
                         ) : (
                           <span className="text-muted">Not needed</span>
