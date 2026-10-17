@@ -1,9 +1,9 @@
 import { Suspense } from "react";
-import Link from "next/link";
-import { Bell, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { db } from "@/lib/db";
 import { Logo } from "@/components/brand/logo";
 import { SidebarNav } from "@/components/app/sidebar-nav";
+import { BellLink } from "@/components/app/bell-link";
 import { requireSession } from "@/lib/auth/session";
 import { signOut } from "@/lib/auth/actions";
 
@@ -77,18 +77,7 @@ async function UserMenu() {
     <>
       <p className="truncate text-sm font-medium text-slate-700">{session.firm.name}</p>
       <div className="flex items-center gap-3">
-        <Link
-          href="/notifications"
-          aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
-          className="relative rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 hover:text-ink"
-        >
-          <Bell className="h-5 w-5" aria-hidden="true" />
-          {unread > 0 && (
-            <span className="tabular absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[10px] font-semibold text-white">
-              {unread > 99 ? "99+" : unread}
-            </span>
-          )}
-        </Link>
+        <BellLink initial={unread} />
         <div className="hidden text-right sm:block">
           <p className="text-sm font-medium leading-tight text-ink">{session.user.name}</p>
           <p className="text-xs leading-tight text-muted">{session.role.toLowerCase()}</p>
