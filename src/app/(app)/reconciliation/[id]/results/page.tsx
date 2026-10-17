@@ -25,7 +25,14 @@ export default async function ResultsPage({ params, searchParams }: Props) {
   const { id } = await params;
   const sp = await searchParams;
 
-  const recon = await db.reconciliation.findFirst({
+  const cat = isCategory(sp.cat) ? sp.cat : undefined;
+  const review = sp.review === "pending" ? "pending" : undefined;
+  const q = (sp.q ?? "").trim().slice(0, 60);
+  const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
+
+  // The reconciliation and its result list are fetched at the same time
+  // (every query is limited to this workspace), saving a round trip.
+  const reconP = db.reconciliation.findFirst({
     where: { id, firmId: session.firm.id },
     select: {
       id: true,
@@ -37,53 +44,52 @@ export default async function ResultsPage({ params, searchParams }: Props) {
       client: { select: { name: true, gstin: true } },
     },
   });
-  if (!recon) notFound();
-  if (recon.status !== "COMPLETED") redirect(`/reconciliation/${id}`);
-
-  const summary = recon.summary as unknown as ReconSummary;
-  const cat = isCategory(sp.cat) ? sp.cat : undefined;
-  const review = sp.review === "pending" ? "pending" : undefined;
-  const q = (sp.q ?? "").trim().slice(0, 60);
-  const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
 
   // Search matches invoice number, GSTIN or supplier name on either side.
-  let rowIds: string[] | undefined;
-  if (q) {
-    const hits = await db.invoiceRow.findMany({
-      where: {
-        reconciliationId: id,
-        firmId: session.firm.id,
-        OR: [
-          { invoiceNo: { contains: q, mode: "insensitive" } },
-          { gstin: { contains: q.toUpperCase() } },
-          { supplierName: { contains: q, mode: "insensitive" } },
-        ],
-      },
-      select: { id: true },
-      take: 2000,
-    });
-    rowIds = hits.map((h) => h.id);
-  }
+  const listP = (async () => {
+    let rowIds: string[] | undefined;
+    if (q) {
+      const hits = await db.invoiceRow.findMany({
+        where: {
+          reconciliationId: id,
+          firmId: session.firm.id,
+          OR: [
+            { invoiceNo: { contains: q, mode: "insensitive" } },
+            { gstin: { contains: q.toUpperCase() } },
+            { supplierName: { contains: q, mode: "insensitive" } },
+          ],
+        },
+        select: { id: true },
+        take: 2000,
+      });
+      rowIds = hits.map((h) => h.id);
+    }
 
-  const where: Prisma.MatchResultWhereInput = {
-    reconciliationId: id,
-    firmId: session.firm.id,
-    ...(cat && { category: cat }),
-    ...(review && { reviewStatus: "PENDING", needsReview: true }),
-    ...(rowIds && { OR: [{ prRowId: { in: rowIds } }, { b2bRowId: { in: rowIds } }] }),
-  };
+    const where: Prisma.MatchResultWhereInput = {
+      reconciliationId: id,
+      firmId: session.firm.id,
+      ...(cat && { category: cat }),
+      ...(review && { reviewStatus: "PENDING", needsReview: true }),
+      ...(rowIds && { OR: [{ prRowId: { in: rowIds } }, { b2bRowId: { in: rowIds } }] }),
+    };
 
-  const [total, results, pendingCount] = await Promise.all([
-    db.matchResult.count({ where }),
-    db.matchResult.findMany({
-      where,
-      orderBy: [{ needsReview: "desc" }, { createdAt: "asc" }, { id: "asc" }],
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      select: { id: true, category: true, prRowId: true, b2bRowId: true, flags: true, diffs: true, reviewStatus: true, needsReview: true },
-    }),
-    db.matchResult.count({ where: { reconciliationId: id, firmId: session.firm.id, needsReview: true, reviewStatus: "PENDING" } }),
-  ]);
+    return Promise.all([
+      db.matchResult.count({ where }),
+      db.matchResult.findMany({
+        where,
+        orderBy: [{ needsReview: "desc" }, { createdAt: "asc" }, { id: "asc" }],
+        skip: (page - 1) * PAGE_SIZE,
+        take: PAGE_SIZE,
+        select: { id: true, category: true, prRowId: true, b2bRowId: true, flags: true, diffs: true, reviewStatus: true, needsReview: true },
+      }),
+      db.matchResult.count({ where: { reconciliationId: id, firmId: session.firm.id, needsReview: true, reviewStatus: "PENDING" } }),
+    ]);
+  })();
+
+  const [recon, [total, results, pendingCount]] = await Promise.all([reconP, listP]);
+  if (!recon) notFound();
+  if (recon.status !== "COMPLETED") redirect(`/reconciliation/${id}`);
+  const summary = recon.summary as unknown as ReconSummary;
 
   const ids = results.flatMap((r) => [r.prRowId, r.b2bRowId]).filter((x): x is string => !!x);
   const rows = await db.invoiceRow.findMany({

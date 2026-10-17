@@ -17,7 +17,16 @@ if (!connectionString) {
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createClient() {
-  const adapter = new PrismaPg({ connectionString });
+  const adapter = new PrismaPg({
+    connectionString,
+    // Opening a new encrypted connection costs several round trips to the
+    // database. node-postgres closes idle connections after 10 seconds by
+    // default, so any pause in clicking meant paying that cost again. Keep
+    // them for 4 minutes instead, with TCP keep-alive so they stay healthy.
+    idleTimeoutMillis: 4 * 60_000,
+    keepAlive: true,
+    max: 10,
+  });
   return new PrismaClient({
     adapter,
     // Neon may need a moment to wake from idle, and the database is overseas.
