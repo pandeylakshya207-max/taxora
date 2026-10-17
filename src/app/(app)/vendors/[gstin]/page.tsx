@@ -43,14 +43,25 @@ export default async function VendorPage({ params, searchParams }: Props) {
     select: { id: true, clientId: true, periodLabel: true, subject: true, status: true, note: true, matchResultIds: true, createdAt: true, updatedAt: true },
   });
 
-  // One draft per reconciliation (client + period), built from the real invoices.
+  // One draft per client and tax period — even if that period was reconciled
+  // more than once — built from the real invoices. An invoice that appears in
+  // several runs is listed once, from the most recent run.
   const groups = new Map<string, VendorRecord[]>();
   for (const c of candidates) {
-    const list = groups.get(c.reconciliationId) ?? [];
+    const key = `${c.clientId}|${c.period}`;
+    const list = groups.get(key) ?? [];
     list.push(c);
-    groups.set(c.reconciliationId, list);
+    groups.set(key, list);
   }
-  const drafts = [...groups.values()].map((items) => {
+  for (const [key, list] of groups) {
+    const latest = new Map<string, VendorRecord>();
+    for (const r of [...list].sort((a, b) => b.completedAt.getTime() - a.completedAt.getTime())) {
+      const k = `${r.invoiceNo.toUpperCase().replace(/[^A-Z0-9]/g, "")}|${r.invoiceDate ?? ""}`;
+      if (!latest.has(k)) latest.set(k, r);
+    }
+    groups.set(key, [...latest.values()].sort((a, b) => (a.invoiceDate ?? "").localeCompare(b.invoiceDate ?? "")));
+  }
+  const drafts = [...groups.entries()].sort((a, b) => b[0].localeCompare(a[0])).map(([groupKey, items]) => {
     const first = items[0];
     const periodLabel = formatPeriod(first.period);
     const draft = draftSupplierEmail({
@@ -70,7 +81,7 @@ export default async function VendorPage({ params, searchParams }: Props) {
       })),
     });
     const alreadyDrafted = followUps.some((f) => items.every((i) => f.matchResultIds.includes(i.resultId)));
-    return { key: first.reconciliationId, clientId: first.clientId, clientName: first.clientName, periodLabel, items, draft, alreadyDrafted };
+    return { key: groupKey.replace(/[^A-Za-z0-9-]/g, "-"), clientId: first.clientId, clientName: first.clientName, periodLabel, items, draft, alreadyDrafted };
   });
 
   return (
