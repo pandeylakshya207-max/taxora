@@ -5,6 +5,7 @@ import { auditData } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import type { SessionContext } from "@/lib/auth/session";
 import { periodWarning } from "./period-check";
+import { sourceWarning } from "./source-check";
 import { buildRecords, checkMapping, detectHeader, detectMapping, type ImportResult, type Mapping } from "./import";
 import { FileReadError, pickSheet, readSheets } from "./read-file";
 
@@ -100,6 +101,8 @@ export async function storeImport(input: ImportInput): Promise<ImportOutcome> {
   const warnings = [...result.warnings];
   const outOfPeriod = periodWarning(result.records.map((r) => r.invoiceDate), recon.period);
   if (outOfPeriod) warnings.unshift({ row: 0, field: null, message: outOfPeriod, value: "" });
+  const wrongBox = sourceWarning(source, sheets.map((s) => s.name), header.headers);
+  if (wrongBox) warnings.unshift({ row: 0, field: null, message: wrongBox, value: "" });
   if (previous) {
     warnings.unshift({
       row: 0,

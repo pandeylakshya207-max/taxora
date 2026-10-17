@@ -23,3 +23,16 @@ test("period check: wrong month's file is flagged, late invoices are normal", ()
   assert.match(periodWarning(["2026-08-02", "2026-08-09", "2026-09-03"], "2026-08")!, /1 invoice is dated after August 2026/);
   assert.equal(periodWarning([null, null], "2026-08"), null);
 });
+
+import { sourceWarning } from "../src/lib/recon/source-check";
+
+const PORTAL = ["GSTIN of supplier", "Trade/Legal name", "Invoice number", "Invoice type", "Invoice Date", "Invoice Value(₹)", "Place of supply", "Supply Attract Reverse Charge", "Taxable Value (₹)", "Integrated Tax(₹)", "Central Tax(₹)", "State/UT Tax(₹)", "Cess(₹)", "GSTR-1/IFF/GSTR-5 Period", "GSTR-1/IFF/GSTR-5 Filing Date", "ITC Availability"];
+const TALLY = ["Date", "Particulars", "Party GSTIN", "Supplier Invoice No", "Taxable Value", "IGST", "CGST", "SGST", "Cess", "Invoice Value"];
+
+test("swapped uploads are flagged; correct uploads are not", () => {
+  const sheets = ["Read me", "ITC Available", "B2B", "B2B-CDNR"];
+  assert.match(sourceWarning("PURCHASE_REGISTER", sheets, PORTAL)!, /looks like a GSTR-2B download/);
+  assert.match(sourceWarning("GSTR2B", ["Sheet1"], TALLY)!, /does not look like a GSTR-2B/);
+  assert.equal(sourceWarning("GSTR2B", sheets, PORTAL), null);
+  assert.equal(sourceWarning("PURCHASE_REGISTER", ["Sheet1"], TALLY), null);
+});
