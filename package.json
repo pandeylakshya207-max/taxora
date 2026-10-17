@@ -4,10 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/recon.test.ts tests/import.test.ts tests/import-checks.test.ts tests/csv.test.ts tests/pdf.test.ts tests/itc.test.ts tests/vendors.test.ts tests/compliance.test.ts tests/config.test.ts tests/ai.test.ts tests/automations.test.ts"
+    "test": "tsx --test tests/recon.test.ts tests/import.test.ts tests/import-checks.test.ts tests/csv.test.ts tests/pdf.test.ts tests/itc.test.ts tests/vendors.test.ts tests/compliance.test.ts tests/config.test.ts tests/ai.test.ts tests/automations.test.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
