@@ -34,7 +34,17 @@ export async function reviewResult(formData: FormData): Promise<void> {
   });
   const back = String(formData.get("back") ?? "/reconciliation");
   const safeBack = back.startsWith("/reconciliation/") ? back : "/reconciliation";
-  if (!parsed.success) redirect(`${safeBack}?error=${encodeURIComponent(parsed.error.issues[0]?.message ?? "Invalid review.")}`);
+  // The page address already has "?back=…", so status flags are added with "&"
+  // (and any earlier flag is dropped first) — otherwise the banner never shows.
+  const to = (key: "saved" | "error", value: string) => {
+    const [path, query = ""] = safeBack.split("?");
+    const params = new URLSearchParams(query);
+    params.delete("saved");
+    params.delete("error");
+    params.set(key, value);
+    return `${path}?${params.toString()}`;
+  };
+  if (!parsed.success) redirect(to("error", parsed.error.issues[0]?.message ?? "Invalid review."));
   const { resultId, decision, note } = parsed.data;
 
   const result = await db.matchResult.findFirst({
@@ -43,10 +53,10 @@ export async function reviewResult(formData: FormData): Promise<void> {
   });
   if (!result) redirect("/reconciliation");
   if (result.reconciliation.finalizedAt) {
-    redirect(`${safeBack}?error=${encodeURIComponent("This reconciliation is finalised. Reviews can no longer be changed.")}`);
+    redirect(to("error", "This reconciliation is finalised. Reviews can no longer be changed."));
   }
   if (decision === "REJECTED" && !note) {
-    redirect(`${safeBack}?error=${encodeURIComponent("Add a note explaining why the match is rejected.")}`);
+    redirect(to("error", "Add a note explaining why the match is rejected."));
   }
 
   await db.$transaction([
@@ -70,5 +80,5 @@ export async function reviewResult(formData: FormData): Promise<void> {
       }),
     }),
   ]);
-  redirect(`${safeBack}?saved=1`);
+  redirect(to("saved", "1"));
 }
