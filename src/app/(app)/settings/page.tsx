@@ -4,7 +4,7 @@ import { requireSession } from "@/lib/auth/session";
 import { db } from "@/lib/db";
 import { resolveReconConfig } from "@/lib/recon/config";
 import { DEFAULT_CONFIG } from "@/lib/recon/engine";
-import { isEmailConfigured } from "@/lib/email";
+import { emailProvider, isEmailConfigured } from "@/lib/email";
 import { NOTIFICATION_KINDS } from "@/lib/notification-kinds";
 import {
   changePassword,
@@ -55,10 +55,10 @@ export default async function SettingsPage({ searchParams }: Props) {
 
   const integrations = [
     {
-      name: "Email delivery (Resend)",
+      name: `Email delivery${emailProvider() ? ` (${emailProvider()})` : ""}`,
       configured: isEmailConfigured(),
       used: "Verification codes and support-ticket copies.",
-      next: "Add RESEND_API_KEY (and EMAIL_FROM on a verified domain) to the server's environment, then restart.",
+      next: "Add SMTP_USER and SMTP_PASS (e.g. a Gmail address and its App Password), or RESEND_API_KEY with a verified domain, to the server's environment, then restart.",
     },
     {
       name: "AI assistance (Anthropic)",
