@@ -85,7 +85,7 @@ export default async function SettingsPage({ searchParams }: Props) {
       <PageHeader title="Settings" description="Your profile, security, workspace and notification preferences." />
 
       <Section id="profile" title="Profile" status={status("profile")}>
-        <form action={updateProfile} className="grid gap-3 sm:grid-cols-2">
+        <form key={session.user.name} action={updateProfile} className="grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-medium text-slate-700">
             Name
             <input name="name" defaultValue={session.user.name} required maxLength={80} className={input} />
@@ -130,7 +130,7 @@ export default async function SettingsPage({ searchParams }: Props) {
       </Section>
 
       <Section id="workspace" title="Workspace" status={status("workspace")}>
-        <form action={updateWorkspace} className="grid gap-3 sm:grid-cols-2">
+        <form key={`${firm?.name}|${firm?.kind}`} action={updateWorkspace} className="grid gap-3 sm:grid-cols-2">
           <label className="text-xs font-medium text-slate-700">
             Workspace name
             <input name="name" defaultValue={firm?.name} required maxLength={120} disabled={!canAdmin} className={input} />
@@ -158,7 +158,9 @@ export default async function SettingsPage({ searchParams }: Props) {
           Used for new reconciliation runs. Each run keeps the exact settings it used, so earlier results stay explainable.
           {isDefault ? " These are the defaults." : " These differ from the defaults."}
         </p>
-        <form action={updateReconSettings} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {/* key: when the saved values change (e.g. after "Reset to defaults"), the
+            inputs are recreated so they show the saved values, not stale typing. */}
+        <form key={JSON.stringify(config)} action={updateReconSettings} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Num name="tolerance" label="Rounding tolerance per amount (₹)" value={config.roundingTolerancePaise / 100} step="0.01" min={0} max={100} disabled={!canAdmin} />
           <Num name="similarity" label="Fuzzy: invoice-number similarity at least (%)" value={Math.round(config.fuzzy.minInvoiceSimilarity * 100)} step="1" min={60} max={100} disabled={!canAdmin} />
           <Num name="fuzzyValue" label="Fuzzy: value within (%)" value={config.fuzzy.maxValueDiffPct} step="0.1" min={0} max={20} disabled={!canAdmin} />
@@ -183,7 +185,7 @@ export default async function SettingsPage({ searchParams }: Props) {
       </Section>
 
       <Section id="notifications" title="Notifications" status={status("notifications")}>
-        <form action={updateNotificationPrefs} className="space-y-3">
+        <form key={[...muted].sort().join(",")} action={updateNotificationPrefs} className="space-y-3">
           {NOTIFICATION_KINDS.map((k) => (
             <label key={k.kind} className="flex items-start gap-3">
               <input type="checkbox" name="enabled" value={k.kind} defaultChecked={!muted.has(k.kind)} className="mt-0.5 h-4 w-4" />
