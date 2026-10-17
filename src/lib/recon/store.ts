@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { auditData } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import type { SessionContext } from "@/lib/auth/session";
+import { periodWarning } from "./period-check";
 import { buildRecords, checkMapping, detectHeader, detectMapping, type ImportResult, type Mapping } from "./import";
 import { FileReadError, pickSheet, readSheets } from "./read-file";
 
@@ -50,7 +51,7 @@ export async function storeImport(input: ImportInput): Promise<ImportOutcome> {
 
   const recon = await db.reconciliation.findFirst({
     where: { id: reconciliationId, firmId: session.firm.id },
-    select: { id: true, status: true, clientId: true },
+    select: { id: true, status: true, clientId: true, period: true },
   });
   if (!recon) return { ok: false, error: "Reconciliation not found." };
   if (recon.status === "COMPLETED") {
@@ -97,6 +98,8 @@ export async function storeImport(input: ImportInput): Promise<ImportOutcome> {
     select: { reconciliation: { select: { period: true } } },
   });
   const warnings = [...result.warnings];
+  const outOfPeriod = periodWarning(result.records.map((r) => r.invoiceDate), recon.period);
+  if (outOfPeriod) warnings.unshift({ row: 0, field: null, message: outOfPeriod, value: "" });
   if (previous) {
     warnings.unshift({
       row: 0,

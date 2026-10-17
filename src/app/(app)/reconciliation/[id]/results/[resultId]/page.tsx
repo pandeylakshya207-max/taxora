@@ -112,7 +112,7 @@ export default async function ResultDetailPage({ params, searchParams }: Props) 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <span className={`inline-flex rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset ${info?.badge ?? ""}`}>{info?.label ?? result.category}</span>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-navy-900">{(pr ?? b)?.supplierName ?? (pr ?? b)?.gstin ?? "Invoice"}</h1>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight text-navy-900">{pr?.supplierName ?? b?.supplierName ?? (pr ?? b)?.gstin ?? "Invoice"}</h1>
           <p className="mt-1 text-sm text-slate-600">{info?.help}</p>
         </div>
         {score && (

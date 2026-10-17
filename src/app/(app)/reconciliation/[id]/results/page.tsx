@@ -212,7 +212,7 @@ export default async function ResultsPage({ params, searchParams }: Props) {
                         )}
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-medium text-ink">{any?.supplierName ?? "—"}</p>
+                        <p className="font-medium text-ink">{pr?.supplierName ?? b?.supplierName ?? "—"}</p>
                         <p className="font-mono text-xs text-muted">{any?.gstin}</p>
                       </td>
                       <td className="px-4 py-3">{pr ? <InvoiceCell no={pr.invoiceNo} date={pr.invoiceDate} /> : <span className="text-muted">—</span>}</td>

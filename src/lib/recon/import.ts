@@ -68,10 +68,14 @@ const ALIASES: Record<Field, string[]> = {
 };
 
 export function normalizeHeader(cell: Cell): string {
+  // Remove currency markers as separate tokens only, so words that merely end
+  // in "rs" (Particulars, Suppliers) are left intact.
   return String(cell ?? "")
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, "")
-    .replace(/(inrs|rs|inr)$/, "");
+    .replace(/₹/g, " ")
+    .replace(/\(\s*(in\s+)?(rs\.?|inr)\s*\)/g, " ")
+    .replace(/(^|[^a-z])(in\s+)?(rs\.?|inr)\s*$/, "$1")
+    .replace(/[^a-z0-9]/g, "");
 }
 
 const ALIAS_LOOKUP = new Map<string, Field>();
