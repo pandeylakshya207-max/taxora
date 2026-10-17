@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { canReject } from "./labels";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { auditData } from "@/lib/audit";
@@ -49,11 +50,15 @@ export async function reviewResult(formData: FormData): Promise<void> {
 
   const result = await db.matchResult.findFirst({
     where: { id: resultId, firmId: session.firm.id },
-    select: { id: true, reviewStatus: true, reconciliation: { select: { id: true, finalizedAt: true } } },
+    select: { id: true, category: true, reviewStatus: true, reconciliation: { select: { id: true, finalizedAt: true } } },
   });
   if (!result) redirect("/reconciliation");
   if (result.reconciliation.finalizedAt) {
     redirect(to("error", "This reconciliation is finalised. Reviews can no longer be changed."));
+  }
+  // Missing and duplicate items have no pair to reject; only "reviewed" applies.
+  if (decision === "REJECTED" && !canReject(result.category)) {
+    redirect(to("error", "This item has no match to reject. Mark it reviewed and add a note instead."));
   }
   if (decision === "REJECTED" && !note) {
     redirect(to("error", "Add a note explaining why the match is rejected."));
@@ -76,7 +81,7 @@ export async function reviewResult(formData: FormData): Promise<void> {
         action: "result.reviewed",
         entityType: "MatchResult",
         entityId: result.id,
-        details: { from: result.reviewStatus, to: decision, note: note || null, reconciliationId: result.reconciliation.id },
+        details: { from: result.reviewStatus, to: decision, category: result.category, note: note || null, reconciliationId: result.reconciliation.id },
       }),
     }),
   ]);

@@ -76,7 +76,7 @@ export default async function RulesPage({ searchParams }: Props) {
                 <div>
                   <p className={`font-medium ${r.active ? "text-ink" : "text-muted line-through"}`}>{r.label}</p>
                   <p className="text-xs text-slate-600">
-                    Day {r.dayOfMonth}, {r.monthOffset === 0 ? "same month" : `${r.monthOffset} month(s) after the period`} · source: {r.sourceNote}
+                    Day {r.dayOfMonth}, {r.monthOffset === 0 ? "same month as the period" : r.monthOffset === 1 ? "the month after the period" : `${r.monthOffset} months after the period`} · source: {r.sourceNote}
                   </p>
                   <p className="text-[11px] text-muted">Added {formatDate(r.createdAt)}</p>
                 </div>

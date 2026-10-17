@@ -43,8 +43,9 @@ export async function setRuleActive(formData: FormData): Promise<void> {
   const active = formData.get("active") === "true";
   const updated = await db.dueDateRule.updateMany({ where: { id, firmId: session.firm.id }, data: { active } });
   if (updated.count) {
+    const rule = await db.dueDateRule.findFirst({ where: { id, firmId: session.firm.id }, select: { label: true } });
     await db.auditLog.create({
-      data: auditData({ firmId: session.firm.id, actorId: session.user.id, action: active ? "compliance.rule_enabled" : "compliance.rule_disabled", entityType: "DueDateRule", entityId: id }),
+      data: auditData({ firmId: session.firm.id, actorId: session.user.id, action: active ? "compliance.rule_enabled" : "compliance.rule_disabled", entityType: "DueDateRule", entityId: id, details: { label: rule?.label ?? "" } }),
     });
   }
   go("/compliance/rules", { saved: "1" });

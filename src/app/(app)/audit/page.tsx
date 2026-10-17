@@ -40,12 +40,34 @@ function entityHref(entityType: string, entityId: string | null, details: Record
   return null;
 }
 
+/** Stored codes shown in plain words. */
+const VALUE_LABEL: Record<string, string> = {
+  PENDING: "Pending", ACCEPTED: "Accepted", REJECTED: "Rejected",
+  DRAFT: "Draft", SENT: "Sent", RESOLVED: "Resolved",
+  TODO: "To do", IN_PROGRESS: "In progress", DONE: "Done", NOT_APPLICABLE: "Not applicable",
+  OPEN: "Open", CLOSED: "Closed",
+  PURCHASE_REGISTER: "Purchase register", GSTR2B: "GSTR-2B",
+  EXACT: "Exact match", FUZZY: "Fuzzy match", PROBABLE: "Probable match", GSTIN_MISMATCH: "GSTIN mismatch",
+  MISSING_IN_2B: "Missing in GSTR-2B", MISSING_IN_PR: "Missing in purchase register", DUPLICATE: "Duplicate entry",
+};
+const NO_PAIR = new Set(["MISSING_IN_2B", "MISSING_IN_PR", "DUPLICATE"]);
+/** "dayOfMonth" -> "day of month" */
+const keyLabel = (k: string) => k.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
+
 /** Show change details compactly; IDs are left out because they mean nothing to a reader. */
 function detailText(details: unknown): string {
   if (!details || typeof details !== "object") return "";
-  return Object.entries(details as Record<string, unknown>)
+  const d = details as Record<string, unknown>;
+  const noPair = typeof d.category === "string" && NO_PAIR.has(d.category);
+  return Object.entries(d)
     .filter(([k, v]) => !/id$/i.test(k) && v !== null && v !== undefined && v !== "")
-    .map(([k, v]) => `${k}: ${typeof v === "object" ? JSON.stringify(v) : String(v)}`)
+    .map(([k, v]) => {
+      if (typeof v === "object") return `${keyLabel(k)}: ${JSON.stringify(v)}`;
+      const s = String(v);
+      // A missing/duplicate item marked as reviewed was stored as ACCEPTED; say "Reviewed".
+      const label = s === "ACCEPTED" && noPair && (k === "to" || k === "from") ? "Reviewed" : (VALUE_LABEL[s] ?? s);
+      return `${keyLabel(k)}: ${label}`;
+    })
     .join(" · ")
     .slice(0, 300);
 }
